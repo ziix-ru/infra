@@ -1,0 +1,17 @@
+---
+- name: Create Traefik directory
+  file:
+    path: /opt/traefik
+    state: directory
+    mode: "0755"
+
+- name: Render Traefik docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/traefik/docker-compose.yml
+    mode: "0644"
+
+- name: Start Traefik stack
+  command: docker compose up -d
+  args:
+    chdir: /opt/traefik

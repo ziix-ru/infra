@@ -1,0 +1,10 @@
+---
+- name: Configure VPS with base packages, Docker, Traefik and whoami
+  hosts: vps
+  become: yes
+
+  roles:
+    - common
+    - docker
+    - traefik
+    - whoami

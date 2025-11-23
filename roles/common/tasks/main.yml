@@ -1,0 +1,30 @@
+---
+- name: Update and upgrade system packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+    autoremove: yes
+
+- name: Install base packages
+  apt:
+    name:
+      - htop
+      - curl
+      - git
+      - vim
+      - ufw
+      - fail2ban
+      - mc
+      - ca-certificates
+      - gnupg
+    state: present
+
+- name: Allow SSH in UFW
+  ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: Enable UFW with default deny
+  ufw:
+    state: enabled
+    policy: deny

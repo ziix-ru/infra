@@ -1,0 +1,17 @@
+---
+- name: Create whoami app directory
+  file:
+    path: /opt/whoami
+    state: directory
+    mode: "0755"
+
+- name: Render whoami docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/whoami/docker-compose.yml
+    mode: "0644"
+
+- name: Start whoami stack
+  command: docker compose up -d
+  args:
+    chdir: /opt/whoami
