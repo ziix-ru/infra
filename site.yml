@@ -1,7 +1,7 @@
 ---
 - name: Configure VPS with base packages, Docker, Traefik and services
   hosts: vps
-  become: yes
+  become: true
 
   roles:
     - role: common

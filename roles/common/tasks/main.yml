@@ -1,56 +1,12 @@
 ---
-- name: Update and upgrade system packages
-  apt:
-    update_cache: yes
-    upgrade: dist
-    autoremove: yes
+- name: System setup and packages
+  ansible.builtin.import_tasks: packages.yml
+  tags: [common, packages]
 
-- name: Install base packages
-  apt:
-    name:
-      - htop
-      - curl
-      - git
-      - vim
-      - ufw
-      - fail2ban
-      - mc
-      - ca-certificates
-      - gnupg
-    state: present
+- name: Security and Firewall configuration
+  ansible.builtin.import_tasks: security.yml
+  tags: [common, security]
 
-- name: Allow SSH in UFW
-  ufw:
-    rule: allow
-    name: OpenSSH
-
-- name: Allow HTTP (port 80) for Let's Encrypt
-  ufw:
-    rule: allow
-    port: '80'
-    proto: tcp
-
-- name: Allow HTTPS (port 443)
-  ufw:
-    rule: allow
-    port: '443'
-    proto: tcp
-
-- name: Allow AmneziaWG UDP port
-  ufw:
-    rule: allow
-    port: "51820"
-    proto: udp
-
-- name: Enable UFW with default deny
-  ufw:
-    state: enabled
-    policy: deny
-
-- name: Disable MOTD banner
-  ansible.builtin.copy:
-    content: ""
-    dest: /etc/motd
-    owner: root
-    group: root
-    mode: "0644"
+- name: Performance tuning (Sysctl, ZRAM, Network)
+  ansible.builtin.import_tasks: tuning.yml
+  tags: [common, tuning]

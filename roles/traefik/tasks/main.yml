@@ -29,4 +29,6 @@
   ansible.builtin.command: docker compose up -d
   args:
     chdir: "{{ traefik_compose_dir }}"
+  become: true
   become_user: deploy
+  changed_when: true

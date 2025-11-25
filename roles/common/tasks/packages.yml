@@ -1,0 +1,29 @@
+---
+- name: Update and upgrade system packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    autoremove: true
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - htop
+      - curl
+      - git
+      - vim
+      - ufw
+      - mc
+      - ca-certificates
+      - gnupg
+      - iperf3
+      - zram-tools
+    state: present
+
+- name: Disable MOTD banner
+  ansible.builtin.copy:
+    content: ""
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"

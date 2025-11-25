@@ -1,0 +1,97 @@
+---
+# --- Kernel Modules ---
+- name: Ensure required kernel modules are loaded
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+    persistent: present
+  loop:
+    - tcp_bbr
+    - nf_conntrack
+
+# --- WireGuard/VPN kernel and network tuning ---
+- name: Tune network stack for WireGuard (Optimized for 4GB RAM)
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-wireguard.conf
+    reload: false
+  loop:
+    - { name: 'net.core.rmem_max', value: '16777216' }
+    - { name: 'net.core.wmem_max', value: '16777216' }
+    - { name: 'net.core.rmem_default', value: '16777216' }
+    - { name: 'net.core.wmem_default', value: '16777216' }
+    - { name: 'net.ipv4.tcp_rmem', value: '4096 131072 16777216' }
+    - { name: 'net.ipv4.tcp_wmem', value: '4096 65536 16777216' }
+    - { name: 'net.ipv4.udp_mem', value: '4096 87380 16777216' }
+    - { name: 'net.core.netdev_max_backlog', value: '16384' }
+    - { name: 'net.core.somaxconn', value: '8192' }
+    - { name: 'net.core.default_qdisc', value: 'fq' }
+    - { name: 'net.ipv4.tcp_congestion_control', value: 'bbr' }
+    - { name: 'net.ipv4.tcp_fastopen', value: '3' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+    - { name: 'net.ipv6.conf.all.forwarding', value: '1' }
+    - { name: 'net.ipv4.tcp_mtu_probing', value: '1' }
+    - { name: 'net.ipv4.tcp_base_mss', value: '1024' }
+    - { name: 'fs.file-max', value: '1048576' }
+    - { name: 'net.netfilter.nf_conntrack_max', value: '262144' }
+    - { name: 'net.netfilter.nf_conntrack_tcp_timeout_established', value: '7200' }
+  notify: Reload sysctl
+
+# --- Memory optimization ---
+- name: Tune Virtual Memory (swap & cache)
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-memory.conf
+    reload: false
+  loop:
+    - { name: 'vm.swappiness', value: '10' }
+    - { name: 'vm.vfs_cache_pressure', value: '50' }
+    - { name: 'vm.dirty_ratio', value: '10' }
+    - { name: 'vm.dirty_background_ratio', value: '5' }
+  notify: Reload sysctl
+
+# --- ZRAM swap ---
+- name: Configure zram swap (lz4 for lower latency)
+  ansible.builtin.copy:
+    dest: /etc/default/zramswap
+    mode: '0644'
+    content: |
+      ALGO=lz4
+      PERCENT=25
+  notify: Restart zramswap
+
+- name: Enable zramswap
+  ansible.builtin.systemd:
+    name: zramswap
+    enabled: true
+    state: started
+
+# --- Network offloads (WireGuard performance) ---
+- name: Enable network offload (WireGuard performance)
+  ansible.builtin.shell: |
+    ethtool -K eth0 gro on gso on || true
+    ethtool -K eth0 tx-nocache-copy on || true
+  changed_when: false
+
+- name: Persist offloads via systemd
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/network-offloads.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Enable network offloads
+      After=network.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/sbin/ethtool -K eth0 gro on gso on
+      ExecStart=/usr/sbin/ethtool -K eth0 tx-nocache-copy on
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Enable and start network-offloads
