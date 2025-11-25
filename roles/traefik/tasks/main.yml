@@ -26,9 +26,8 @@
     mode: "0644"
 
 - name: Start Traefik stack
-  ansible.builtin.command: docker compose up -d
-  args:
-    chdir: "{{ traefik_compose_dir }}"
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_compose_dir }}"
+    state: present
   become: true
   become_user: deploy
-  changed_when: true
