@@ -1,12 +1,33 @@
 base_domain: "ziix.ru"
 
+# --- ПОДДОМЕНЫ ---
+vpn_subdomain: "vpn"
+traefik_subdomain: "proxy"
+
+# --- ПУТИ И СЕТЬ ---
+base_docker_data_dir: "/srv/docker"
+base_docker_config_dir: "/opt"
+docker_network_name: "web"
+
+# --- ВЕРСИИ ---
+traefik_version: "v3.6.2"
+amneziawg_version: "v1.1"
+
+# --- ЮЗЕРЫ ---
+deploy_user: "deploy"  # <--- Теперь имя пользователя задается здесь
+admin_username: "admin"
+
+# --- КРЕДЫ ---
 admin_email: "{{ vault_admin_email }}"
 admin_password: "{{ vault_admin_password }}"
-admin_username: "admin"
 
 docker_hub_username: "skardiz"
 docker_hub_password: "{{ vault_docker_hub_password }}"
 
+# --- СЕРВИСНЫЕ ПЕРЕМЕННЫЕ ---
 traefik_acme_email: "{{ admin_email }}"
+# Строка вида "user:hash" из Vault
+traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
+
 amneziawg_nginx_user: "{{ admin_username }}"
 amneziawg_nginx_password: "{{ admin_password }}"

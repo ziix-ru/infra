@@ -11,7 +11,7 @@
 
 - name: Create deploy user
   ansible.builtin.user:
-    name: deploy
+    name: "{{ deploy_user }}"
     groups: sudo
     shell: /bin/bash
     create_home: true
@@ -20,7 +20,7 @@
 
 - name: Add SSH key for deploy user
   ansible.builtin.authorized_key:
-    user: deploy
+    user: "{{ deploy_user }}"
     state: present
     key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
 

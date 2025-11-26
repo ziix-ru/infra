@@ -1,26 +1,20 @@
 services:
-  traefik:
-    container_name: traefik
+  {{ traefik_service_name }}:
+    container_name: {{ traefik_service_name }}
     image: {{ traefik_image }}
     command:
-      # API и Dashboard
-      - "--api.insecure=true"
+      - "--api=true"
       - "--api.dashboard=true"
-      
-      # Docker provider
+
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network={{ traefik_docker_network }}"
-      
-      # Entrypoints (порты)
+
       - "--entrypoints.web.address=:{{ traefik_http_port }}"
       - "--entrypoints.websecure.address=:{{ traefik_https_port }}"
-      
-      # Автоматический редирект HTTP -> HTTPS
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      
-      # ACME / Let's Encrypt для автоматических сертификатов
+
       - "--certificatesresolvers.letsencrypt.acme.email={{ traefik_acme_email }}"
       - "--certificatesresolvers.letsencrypt.acme.storage={{ traefik_acme_storage }}"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
@@ -28,18 +22,38 @@ services:
 {% if traefik_acme_staging == "true" %}
       - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
 {% endif %}
-    
+
     ports:
       - "{{ traefik_http_port }}:{{ traefik_http_port }}"
       - "{{ traefik_https_port }}:{{ traefik_https_port }}"
-      - "{{ traefik_dashboard_port }}:{{ traefik_dashboard_port }}"
-    
+
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "{{ traefik_data_dir }}/acme.json:{{ traefik_acme_storage }}"
-    
+
     restart: unless-stopped
-    
+
+    labels:
+      traefik.enable: "true"
+
+      # ЯВНОЕ ИМЯ СЕРВИСА (чтобы было красиво traefik@docker)
+      traefik.http.services.{{ traefik_service_name }}.loadbalancer.server.port: "8080"
+
+      # Дашборд на домене
+      traefik.http.routers.dashboard.rule: "Host(`{{ traefik_dashboard_domain }}`)"
+      traefik.http.routers.dashboard.service: "api@internal"
+      traefik.http.routers.dashboard.entrypoints: "websecure"
+      traefik.http.routers.dashboard.tls: "true"
+      traefik.http.routers.dashboard.tls.certresolver: "letsencrypt"
+
+      # Защита паролем
+      traefik.http.routers.dashboard.middlewares: "auth"
+      # Экранируем $ для Docker Compose, заменяя на $$
+      traefik.http.middlewares.auth.basicauth.users: "{{ traefik_dashboard_auth | replace('$', '$$') }}"
+
+      # Сеть
+      traefik.docker.network: "{{ traefik_docker_network }}"
+
     networks:
       - {{ traefik_docker_network }}
 

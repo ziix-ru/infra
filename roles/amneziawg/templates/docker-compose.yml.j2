@@ -1,6 +1,6 @@
 services:
-  amneziawg:
-    container_name: amneziawg
+  {{ amneziawg_service_name }}:
+    container_name: {{ amneziawg_service_name }}
     image: {{ amneziawg_image }}
     restart: unless-stopped
 
@@ -45,27 +45,26 @@ services:
 
     labels:
       traefik.enable: "true"
-      
-      # HTTP router (для ACME challenge)
-      traefik.http.routers.amneziawg-http.rule: "Host(`{{ amneziawg_domain }}`)"
-      traefik.http.routers.amneziawg-http.entrypoints: "web"
-      traefik.http.routers.amneziawg-http.service: "amneziawg"
-      
-      # HTTPS router
-      traefik.http.routers.amneziawg.rule: "Host(`{{ amneziawg_domain }}`)"
-      traefik.http.routers.amneziawg.entrypoints: "websecure"
-      traefik.http.routers.amneziawg.tls: "true"
-      traefik.http.routers.amneziawg.tls.certresolver: "letsencrypt"
-      traefik.http.routers.amneziawg.service: "amneziawg"
-      
-      # Service
-      traefik.http.services.amneziawg.loadbalancer.server.port: "{{ amneziawg_nginx_port }}"
-      
-      traefik.docker.network: "web"
+
+      # Имя сети, в которой Traefik нас увидит
+      traefik.docker.network: "{{ docker_network_name }}"
+
+      # Динамические имена роутеров
+      traefik.http.routers.{{ amneziawg_service_name }}-http.rule: "Host(`{{ amneziawg_domain }}`)"
+      traefik.http.routers.{{ amneziawg_service_name }}-http.entrypoints: "web"
+      traefik.http.routers.{{ amneziawg_service_name }}-http.service: "{{ amneziawg_service_name }}"
+
+      traefik.http.routers.{{ amneziawg_service_name }}.rule: "Host(`{{ amneziawg_domain }}`)"
+      traefik.http.routers.{{ amneziawg_service_name }}.entrypoints: "websecure"
+      traefik.http.routers.{{ amneziawg_service_name }}.tls: "true"
+      traefik.http.routers.{{ amneziawg_service_name }}.tls.certresolver: "letsencrypt"
+      traefik.http.routers.{{ amneziawg_service_name }}.service: "{{ amneziawg_service_name }}"
+
+      traefik.http.services.{{ amneziawg_service_name }}.loadbalancer.server.port: "{{ amneziawg_nginx_port }}"
 
     networks:
-      - web
+      - {{ docker_network_name }}
 
 networks:
-  web:
+  {{ docker_network_name }}:
     external: true

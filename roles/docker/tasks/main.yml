@@ -35,7 +35,7 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
-      - python3-docker  # <--- ВАЖНО: Библиотека для работы модулей Ansible
+      - python3-docker
     state: present
     update_cache: true
 
@@ -47,21 +47,21 @@
 
 - name: Add deploy user to docker group
   ansible.builtin.user:
-    name: deploy
+    name: "{{ deploy_user }}"
     groups: docker
     append: true
 
-- name: Ensure shared Docker network 'web' exists
+- name: Ensure shared Docker network exists
   community.docker.docker_network:
-    name: web
+    name: "{{ docker_network_name }}"
     state: present
 
-# --- NEW: Log into Docker Hub to avoid rate limits ---
-- name: Log into Docker Hub (as deploy user)
-  ansible.builtin.shell: |
-    set -o pipefail
-    echo "{{ docker_hub_password }}" | docker login -u "{{ docker_hub_username }}" --password-stdin
+# --- NEW: Ипользуем нативный модуль вместо shell ---
+- name: Log into Docker Hub
+  community.docker.docker_login:
+    username: "{{ docker_hub_username }}"
+    password: "{{ docker_hub_password }}"
+    state: present
   become: true
-  become_user: deploy
+  become_user: "{{ deploy_user }}"
   when: docker_hub_username is defined and docker_hub_password is defined
-  changed_when: false

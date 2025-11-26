@@ -1,23 +1,16 @@
-amneziawg_image: "alexishw/amneziawg-web-ui:master"
+amneziawg_service_name: "amneziawg"
+amneziawg_image: "alexishw/amneziawg-web-ui:{{ amneziawg_version }}"
 
-# Директории
-amneziawg_data_dir: "/srv/docker/amneziawg"
-amneziawg_compose_dir: "/opt/amneziawg"
+amneziawg_data_dir: "{{ base_docker_data_dir }}/{{ amneziawg_service_name }}"
+amneziawg_compose_dir: "{{ base_docker_config_dir }}/{{ amneziawg_service_name }}"
 
-# Домен для HTTPS
-amneziawg_domain: "vpn.{{ base_domain }}"
-
-# Внутренний порт Nginx
+amneziawg_domain: "{{ vpn_subdomain }}.{{ base_domain }}"
 amneziawg_nginx_port: "80"
-
-# Basic auth
 amneziawg_nginx_user: "{{ admin_username }}"
 amneziawg_nginx_password: "{{ admin_password }}"
 
-# Traefik
 amneziawg_entrypoints: "websecure"
 
-# Параметры VPN
 amneziawg_auto_start_servers: "true"
 amneziawg_default_mtu: "1280"
 amneziawg_default_subnet: "10.0.0.0/24"

@@ -73,8 +73,8 @@
 # --- Network offloads (WireGuard performance) ---
 - name: Enable network offload (WireGuard performance)
   ansible.builtin.shell: |
-    ethtool -K eth0 gro on gso on || true
-    ethtool -K eth0 tx-nocache-copy on || true
+    ethtool -K {{ ansible_default_ipv4.interface }} gro on gso on || true
+    ethtool -K {{ ansible_default_ipv4.interface }} tx-nocache-copy on || true
   changed_when: false
 
 - name: Persist offloads via systemd
@@ -88,8 +88,8 @@
 
       [Service]
       Type=oneshot
-      ExecStart=/usr/sbin/ethtool -K eth0 gro on gso on
-      ExecStart=/usr/sbin/ethtool -K eth0 tx-nocache-copy on
+      ExecStart=/usr/sbin/ethtool -K {{ ansible_default_ipv4.interface }} gro on gso on
+      ExecStart=/usr/sbin/ethtool -K {{ ansible_default_ipv4.interface }} tx-nocache-copy on
       RemainAfterExit=yes
 
       [Install]

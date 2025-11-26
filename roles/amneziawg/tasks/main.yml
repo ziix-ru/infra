@@ -22,4 +22,4 @@
     project_src: "{{ amneziawg_compose_dir }}"
     state: present
   become: true
-  become_user: deploy
+  become_user: "{{ deploy_user }}"
