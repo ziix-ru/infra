@@ -1,0 +1,45 @@
+services:
+  {{ syncthing_service_name }}:
+    container_name: {{ syncthing_service_name }}
+    image: {{ syncthing_image }}
+    restart: unless-stopped
+
+    environment:
+      PUID: "{{ syncthing_puid }}"
+      PGID: "{{ syncthing_pgid }}"
+      TZ: "{{ syncthing_tz }}"
+
+    volumes:
+      - "{{ syncthing_data_dir }}/config:/config"
+      - "{{ syncthing_data_dir }}/data:/data"
+
+    ports:
+      - "{{ syncthing_tcp_port }}:{{ syncthing_tcp_port }}/tcp"
+      - "{{ syncthing_udp_port }}:{{ syncthing_udp_port }}/udp"
+      - "{{ syncthing_discovery_port }}:{{ syncthing_discovery_port }}/udp"
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "{{ docker_network_name }}"
+
+      # HTTP роутер
+      traefik.http.routers.{{ syncthing_service_name }}-http.rule: "Host(`{{ syncthing_domain }}`)"
+      traefik.http.routers.{{ syncthing_service_name }}-http.entrypoints: "web"
+      traefik.http.routers.{{ syncthing_service_name }}-http.service: "{{ syncthing_service_name }}"
+
+      # HTTPS роутер
+      traefik.http.routers.{{ syncthing_service_name }}.rule: "Host(`{{ syncthing_domain }}`)"
+      traefik.http.routers.{{ syncthing_service_name }}.entrypoints: "websecure"
+      traefik.http.routers.{{ syncthing_service_name }}.tls: "true"
+      traefik.http.routers.{{ syncthing_service_name }}.tls.certresolver: "letsencrypt"
+      traefik.http.routers.{{ syncthing_service_name }}.service: "{{ syncthing_service_name }}"
+
+      # Сервис
+      traefik.http.services.{{ syncthing_service_name }}.loadbalancer.server.port: "{{ syncthing_web_port }}"
+
+    networks:
+      - {{ docker_network_name }}
+
+networks:
+  {{ docker_network_name }}:
+    external: true

@@ -1,0 +1,26 @@
+---
+- name: Ensure Syncthing directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+  loop:
+    - "{{ syncthing_data_dir }}"
+    - "{{ syncthing_data_dir }}/config"
+    - "{{ syncthing_data_dir }}/data"
+    - "{{ syncthing_compose_dir }}"
+
+- name: Render Syncthing docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ syncthing_compose_dir }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Start Syncthing stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ syncthing_compose_dir }}"
+    state: present
+  become: true
+  become_user: "{{ deploy_user }}"

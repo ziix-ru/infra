@@ -1,0 +1,18 @@
+syncthing_service_name: "syncthing"
+syncthing_image: "lscr.io/linuxserver/syncthing:2.0.11"
+
+syncthing_data_dir: "{{ docker_data_dir }}/{{ syncthing_service_name }}"
+syncthing_compose_dir: "{{ docker_config_dir }}/{{ syncthing_service_name }}"
+
+syncthing_domain: "syncthing.{{ base_domain }}"
+
+# Порты
+syncthing_web_port: "8384"
+syncthing_tcp_port: "22000"
+syncthing_udp_port: "22000"
+syncthing_discovery_port: "21027"
+
+# LinuxServer.io параметры
+syncthing_puid: "{{ default_puid }}"
+syncthing_pgid: "{{ default_pgid }}"
+syncthing_tz: "{{ default_timezone }}"

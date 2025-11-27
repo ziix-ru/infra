@@ -3,18 +3,24 @@
   ansible.builtin.file:
     path: "{{ traefik_data_dir }}"
     state: directory
+    owner: "{{ deploy_user }}"  # ← ДОБАВЬ
+    group: "{{ deploy_user }}"  # ← ДОБАВЬ
     mode: "0755"
 
 - name: Ensure Traefik compose directory exists
   ansible.builtin.file:
     path: "{{ traefik_compose_dir }}"
     state: directory
+    owner: "{{ deploy_user }}"  # ← ДОБАВЬ
+    group: "{{ deploy_user }}"  # ← ДОБАВЬ
     mode: "0755"
 
 - name: Ensure acme.json exists with correct permissions
   ansible.builtin.file:
     path: "{{ traefik_data_dir }}/acme.json"
     state: touch
+    owner: "{{ deploy_user }}"  # ← ДОБАВЬ
+    group: "{{ deploy_user }}"  # ← ДОБАВЬ
     mode: "0600"
     modification_time: preserve
     access_time: preserve

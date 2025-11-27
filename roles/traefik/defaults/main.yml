@@ -1,26 +1,20 @@
-# roles/traefik/defaults/main.yml
-
 traefik_service_name: "traefik"
+traefik_image: "traefik:v3.6.2"
 
-# Версия (из глобальных vars)
-traefik_image: "traefik:{{ traefik_version }}"
+traefik_data_dir: "{{ docker_data_dir }}/{{ traefik_service_name }}"
+traefik_compose_dir: "{{ docker_config_dir }}/{{ traefik_service_name }}"
 
-# Директории (из глобальных vars)
-traefik_data_dir: "{{ base_docker_data_dir }}/{{ traefik_service_name }}"
-traefik_compose_dir: "{{ base_docker_config_dir }}/{{ traefik_service_name }}"
+traefik_dashboard_domain: "traefik.{{ base_domain }}"
 
-# Домен дашборда (собираем здесь, как у Amnezia)
-traefik_dashboard_domain: "{{ traefik_subdomain }}.{{ base_domain }}"
-
-# Порты (публичные)
 traefik_http_port: "80"
 traefik_https_port: "443"
-# Порт дашборда (8080) убран, так как он теперь через домен
 
-# Docker provider (из глобальных vars)
 traefik_docker_network: "{{ docker_network_name }}"
 
 # ACME / Let's Encrypt
 traefik_acme_email: "{{ admin_email }}"
 traefik_acme_storage: "/acme.json"
 traefik_acme_staging: "false"
+
+# Dashboard auth
+traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"

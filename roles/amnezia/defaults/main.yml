@@ -1,0 +1,19 @@
+amnezia_service_name: "amnezia"
+amnezia_image: "alexishw/amneziawg-web-ui:v1.1"
+
+amnezia_data_dir: "{{ docker_data_dir }}/{{ amnezia_service_name }}"
+amnezia_compose_dir: "{{ docker_config_dir }}/{{ amnezia_service_name }}"
+
+amnezia_domain: "amnezia.{{ base_domain }}"
+amnezia_nginx_port: "80"
+amnezia_nginx_user: "{{ admin_username }}"
+amnezia_nginx_password: "{{ admin_password }}"
+
+amnezia_entrypoints: "websecure"
+
+amnezia_auto_start_servers: "true"
+amnezia_default_mtu: "1280"
+amnezia_default_subnet: "10.0.0.0/24"
+amnezia_default_port: "51820"
+amnezia_default_dns: "8.8.8.8,1.1.1.1"
+amnezia_wireguard_port: "51820"

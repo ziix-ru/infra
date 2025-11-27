@@ -1,0 +1,29 @@
+---
+- name: Ensure Amnezia data directory exists
+  ansible.builtin.file:
+    path: "{{ amnezia_data_dir }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0700"
+
+- name: Ensure Amnezia compose directory exists
+  ansible.builtin.file:
+    path: "{{ amnezia_compose_dir }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+
+- name: Render Amnezia Web UI docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ amnezia_compose_dir }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Start Amnezia Web UI stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ amnezia_compose_dir }}"
+    state: present
+  become: true
+  become_user: "{{ deploy_user }}"

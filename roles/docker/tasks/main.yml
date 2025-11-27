@@ -56,12 +56,11 @@
     name: "{{ docker_network_name }}"
     state: present
 
-# --- NEW: Ипользуем нативный модуль вместо shell ---
 - name: Log into Docker Hub
   community.docker.docker_login:
-    username: "{{ docker_hub_username }}"
-    password: "{{ docker_hub_password }}"
+    username: "{{ docker_registry_username }}"
+    password: "{{ docker_registry_password }}"
     state: present
   become: true
   become_user: "{{ deploy_user }}"
-  when: docker_hub_username is defined and docker_hub_password is defined
+  when: docker_registry_username is defined and docker_registry_password is defined

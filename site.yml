@@ -13,5 +13,8 @@
     - role: traefik
       tags: traefik
 
-    - role: amneziawg
-      tags: amneziawg
+    - role: amnezia
+      tags: amnezia
+
+    - role: syncthing
+      tags: syncthing

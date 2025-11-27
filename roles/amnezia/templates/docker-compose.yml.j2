@@ -1,0 +1,70 @@
+services:
+  {{ amnezia_service_name }}:
+    container_name: {{ amnezia_service_name }}
+    image: {{ amnezia_image }}
+    restart: unless-stopped
+
+    environment:
+      NGINX_PORT: "{{ amnezia_nginx_port }}"
+      NGINX_USER: "{{ amnezia_nginx_user }}"
+      NGINX_PASSWORD: "{{ amnezia_nginx_password }}"
+      AUTO_START_SERVERS: "{{ amnezia_auto_start_servers }}"
+      DEFAULT_MTU: "{{ amnezia_default_mtu }}"
+      DEFAULT_SUBNET: "{{ amnezia_default_subnet }}"
+      DEFAULT_PORT: "{{ amnezia_default_port }}"
+      DEFAULT_DNS: "{{ amnezia_default_dns }}"
+
+    volumes:
+      - "{{ amnezia_data_dir }}:/etc/amnezia"
+
+    ports:
+      - "{{ amnezia_wireguard_port }}:{{ amnezia_wireguard_port }}/udp"
+
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.forwarding=1
+      - net.ipv6.conf.default.forwarding=1
+
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -u {{ amnezia_nginx_user }}:{{ amnezia_nginx_password }} -f http://127.0.0.1:{{ amnezia_nginx_port }}/ || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "{{ docker_network_name }}"
+
+      # HTTP роутер
+      traefik.http.routers.{{ amnezia_service_name }}-http.rule: "Host(`{{ amnezia_domain }}`)"
+      traefik.http.routers.{{ amnezia_service_name }}-http.entrypoints: "web"
+      traefik.http.routers.{{ amnezia_service_name }}-http.service: "{{ amnezia_service_name }}"
+
+      # HTTPS роутер
+      traefik.http.routers.{{ amnezia_service_name }}.rule: "Host(`{{ amnezia_domain }}`)"
+      traefik.http.routers.{{ amnezia_service_name }}.entrypoints: "websecure"
+      traefik.http.routers.{{ amnezia_service_name }}.tls: "true"
+      traefik.http.routers.{{ amnezia_service_name }}.tls.certresolver: "letsencrypt"
+      traefik.http.routers.{{ amnezia_service_name }}.service: "{{ amnezia_service_name }}"
+
+      # Сервис
+      traefik.http.services.{{ amnezia_service_name }}.loadbalancer.server.port: "{{ amnezia_nginx_port }}"
+
+    networks:
+      - {{ docker_network_name }}
+
+networks:
+  {{ docker_network_name }}:
+    external: true

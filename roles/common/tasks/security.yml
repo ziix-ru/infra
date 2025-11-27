@@ -39,6 +39,27 @@
     proto: udp
     comment: 'iperf3 UDP'
 
+- name: Allow Syncthing TCP port
+  community.general.ufw:
+    rule: allow
+    port: 22000
+    proto: tcp
+    comment: 'Syncthing TCP'
+
+- name: Allow Syncthing UDP port
+  community.general.ufw:
+    rule: allow
+    port: 22000
+    proto: udp
+    comment: 'Syncthing UDP'
+
+- name: Allow Syncthing Discovery UDP port
+  community.general.ufw:
+    rule: allow
+    port: 21027
+    proto: udp
+    comment: 'Syncthing Discovery'
+
 - name: Enable UFW with default deny
   community.general.ufw:
     state: enabled
