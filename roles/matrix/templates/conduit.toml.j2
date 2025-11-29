@@ -1,0 +1,18 @@
+[global]
+server_name = "{{ matrix_server_name }}"
+database_backend = "{{ matrix_database_backend }}"
+database_path = "/var/lib/matrix-conduit/"
+port = {{ matrix_port }}
+max_request_size = {{ matrix_max_request_size }}
+allow_registration = {{ matrix_registration_enabled | lower }}
+allow_federation = {{ matrix_allow_federation | lower }}
+trusted_servers = {{ matrix_trusted_servers }}
+address = "0.0.0.0"
+log = "info"
+
+[global.well_known]
+server = "{{ matrix_well_known_server }}"
+
+# TURN
+turn_uris = {{ matrix_turn_uris }}
+turn_secret = "{{ matrix_turn_secret }}"

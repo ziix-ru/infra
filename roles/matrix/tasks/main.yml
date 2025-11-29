@@ -1,5 +1,28 @@
 ---
-- name: Deploy Matrix
+- name: Ensure Matrix directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+  loop:
+    - "{{ matrix_data_dir }}"
+    - "{{ matrix_data_dir }}/db"
+    - "{{ matrix_compose_dir }}"
+  become: true
+
+# Деплоим конфиг TOML
+- name: Deploy Tuwunel Config
+  ansible.builtin.template:
+    src: tuwunel.toml.j2
+    dest: "{{ matrix_compose_dir }}/tuwunel.toml"
+    mode: "0644"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+  become: true
+
+- name: Deploy Matrix Stack
   ansible.builtin.include_role:
     name: common
     tasks_from: docker_service
@@ -7,7 +30,3 @@
     common_docker_service_name: "Matrix"
     common_docker_service_dir: "{{ matrix_compose_dir }}"
     common_docker_service_compose_template: "{{ playbook_dir }}/roles/matrix/templates/docker-compose.yml.j2"
-    common_docker_service_data_dirs:
-      - "{{ matrix_data_dir }}"
-      - "{{ matrix_data_dir }}/db"
-      - "{{ matrix_compose_dir }}"

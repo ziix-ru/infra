@@ -5,51 +5,39 @@ services:
     restart: unless-stopped
 
     environment:
-      - CONDUIT_CONFIG=
-      - CONDUIT_SERVER_NAME={{ matrix_server_name }}
-      - CONDUIT_DATABASE_BACKEND={{ matrix_database_backend }}
-      - CONDUIT_DATABASE_PATH=/var/lib/matrix-conduit/
-      - CONDUIT_PORT={{ matrix_port }}
-      - CONDUIT_MAX_REQUEST_SIZE={{ matrix_max_request_size }}
-      - CONDUIT_ALLOW_REGISTRATION={{ matrix_registration_enabled }}
-      - CONDUIT_ALLOW_FEDERATION={{ matrix_allow_federation }}
-      - CONDUIT_TRUSTED_SERVERS={{ matrix_trusted_servers }}
-      - CONDUIT_ADDRESS=0.0.0.0
-
-      # Well-Known (Conduit сам их сгенерирует)
-      - CONDUIT_WELL_KNOWN_SERVER={{ matrix_well_known_server }}
-      - CONDUIT_WELL_KNOWN_CLIENT={{ matrix_well_known_client }}
-
-      # TURN
-      - CONDUIT_TURN_URIS={{ matrix_turn_uris }}
-      - CONDUIT_TURN_SECRET={{ matrix_turn_secret }}
-
+      # Указываем путь к конфигу внутри контейнера
+      - CONDUIT_CONFIG=/etc/tuwunel.toml
+    
     volumes:
       - "{{ matrix_data_dir }}/db:/var/lib/matrix-conduit/"
+      # Монтируем наш TOML файл
+      - ./tuwunel.toml:/etc/tuwunel.toml:ro
 
     labels:
       traefik.enable: "true"
       traefik.docker.network: "{{ docker_network_name }}"
 
-      # API Router
-      traefik.http.routers.{{ matrix_service_name }}-api.rule: "Host(`{{ matrix_server_domain }}`)"
-      traefik.http.routers.{{ matrix_service_name }}-api.entrypoints: "websecure"
-      traefik.http.routers.{{ matrix_service_name }}-api.tls: "true"
-      traefik.http.routers.{{ matrix_service_name }}-api.tls.certresolver: "letsencrypt"
-      traefik.http.routers.{{ matrix_service_name }}-api.service: "{{ matrix_service_name }}"
+      # 1. Роутер для matrix.ziix.ru (API)
+      traefik.http.routers.matrix-api.rule: "Host(`{{ matrix_server_domain }}`)"
+      traefik.http.routers.matrix-api.entrypoints: "websecure"
+      traefik.http.routers.matrix-api.tls: "true"
+      traefik.http.routers.matrix-api.tls.certresolver: "letsencrypt"
+      traefik.http.routers.matrix-api.service: "{{ matrix_service_name }}"
 
-      # Well-Known Router
-      traefik.http.routers.{{ matrix_service_name }}-wk.rule: "Host(`{{ matrix_server_name }}`) && PathPrefix(`/.well-known/matrix/`)"
-      traefik.http.routers.{{ matrix_service_name }}-wk.entrypoints: "websecure"
-      traefik.http.routers.{{ matrix_service_name }}-wk.tls: "true"
-      traefik.http.routers.{{ matrix_service_name }}-wk.tls.certresolver: "letsencrypt"
-      traefik.http.routers.{{ matrix_service_name }}-wk.service: "{{ matrix_service_name }}"
+      # 2. Роутер для ziix.ru/.well-known (Client Discovery) - ТЕПЕРЬ ИДЕТ В TUWUNEL
+      traefik.http.routers.matrix-wk.rule: "Host(`{{ matrix_server_name }}`) && PathPrefix(`/.well-known/matrix`)"
+      traefik.http.routers.matrix-wk.entrypoints: "websecure"
+      traefik.http.routers.matrix-wk.tls: "true"
+      traefik.http.routers.matrix-wk.tls.certresolver: "letsencrypt"
+      traefik.http.routers.matrix-wk.service: "{{ matrix_service_name }}"
 
-      # Service
+      # Сервис
       traefik.http.services.{{ matrix_service_name }}.loadbalancer.server.port: "{{ matrix_port }}"
 
     networks:
       - {{ docker_network_name }}
+
+# NGINX УДАЛЕН! ОН БОЛЬШЕ НЕ НУЖЕН.
 
 networks:
   {{ docker_network_name }}:

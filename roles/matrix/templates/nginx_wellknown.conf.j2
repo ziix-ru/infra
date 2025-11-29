@@ -1,0 +1,13 @@
+server {
+    listen 80;
+    server_name _;
+
+    location /.well-known/matrix/client {
+        root /usr/share/nginx/html;
+        default_type application/json;
+        # CORS заголовки важны
+        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+        add_header Access-Control-Allow-Headers 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
+    }
+}

@@ -36,3 +36,6 @@
 
     - role: restic
       tags: restic
+
+    - role: rtc
+      tags: rtc

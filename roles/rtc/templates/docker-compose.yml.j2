@@ -1,0 +1,65 @@
+services:
+  auth:
+    image: {{ rtc_auth_image }}
+    container_name: {{ rtc_service_name }}_auth
+    restart: unless-stopped
+    environment:
+      - LIVEKIT_URL=wss://{{ rtc_domain }}
+      - LIVEKIT_KEY={{ rtc_livekit_key }}
+      - LIVEKIT_SECRET={{ rtc_livekit_secret }}
+      
+      # Указываем локальный домен, как советовал эксперт
+      - LIVEKIT_LOCAL_HOMESERVERS={{ base_domain }}
+      
+      - LIVEKIT_JWT_PORT=8080
+      # Отключаем проверку сертификата, чтобы локальный запрос прошел наверняка
+      - LIVEKIT_INSECURE_SKIP_VERIFY_TLS=true
+
+    # Это оставляем, иначе M_LOOKUP_FAILED
+    extra_hosts:
+      - "matrix.{{ base_domain }}:{{ ansible_default_ipv4.address }}"
+      - "{{ base_domain }}:{{ ansible_default_ipv4.address }}"
+
+    networks:
+      - {{ docker_network_name }}
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "{{ docker_network_name }}"
+      traefik.http.routers.rtc-auth.rule: "Host(`{{ rtc_domain }}`) && PathPrefix(`/sfu/get`)"
+      traefik.http.routers.rtc-auth.entrypoints: "websecure"
+      traefik.http.routers.rtc-auth.tls.certresolver: "letsencrypt"
+      traefik.http.services.rtc-auth.loadbalancer.server.port: "8080"
+      traefik.http.routers.rtc-auth.priority: "100"
+
+  livekit:
+    # ... (LiveKit оставляем как был, он работает) ...
+    image: {{ rtc_livekit_image }}
+    container_name: {{ rtc_service_name }}_server
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    environment:
+      - LIVEKIT_NODE_IP={{ ansible_default_ipv4.address }}
+    ports:
+      - "7881:7881"
+      - "50100-50200:50100-50200/udp"
+    networks:
+      - {{ docker_network_name }}
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "{{ docker_network_name }}"
+      traefik.http.services.rtc-service.loadbalancer.server.port: "7880"
+      traefik.http.middlewares.rtc-headers.headers.customrequestheaders.X-Forwarded-Proto: "https"
+      traefik.http.middlewares.rtc-headers.headers.customrequestheaders.Upgrade: "websocket"
+      traefik.http.middlewares.rtc-headers.headers.customrequestheaders.Connection: "Upgrade"
+      traefik.http.routers.rtc-all.rule: "Host(`{{ rtc_domain }}`)"
+      traefik.http.routers.rtc-all.entrypoints: "websecure"
+      traefik.http.routers.rtc-all.tls.certresolver: "letsencrypt"
+      traefik.http.routers.rtc-all.service: "rtc-service"
+      traefik.http.routers.rtc-all.middlewares: "rtc-headers"
+      traefik.http.routers.rtc-all.priority: "50"
+
+networks:
+  {{ docker_network_name }}:
+    external: true

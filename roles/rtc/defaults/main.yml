@@ -1,0 +1,12 @@
+rtc_service_name: "rtc"
+rtc_domain: "rtc.{{ base_domain }}"
+
+# Image versions
+rtc_livekit_image: "livekit/livekit-server:v1.5.3"
+rtc_auth_image: "ghcr.io/element-hq/lk-jwt-service:latest"
+
+# Keys from Vault
+rtc_livekit_key: "{{ vault_livekit_key }}"
+rtc_livekit_secret: "{{ vault_livekit_secret }}"
+
+rtc_data_dir: "{{ docker_data_dir }}/{{ rtc_service_name }}"

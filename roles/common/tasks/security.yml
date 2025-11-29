@@ -38,6 +38,10 @@
     - { port: "3478", proto: "udp", comment: "TURN Signaling UDP" }
     - { port: "3478", proto: "tcp", comment: "TURN Signaling TCP" }
     - { port: "49152:49200", proto: "udp", comment: "TURN Relay Media" }
+    # LiveKit RTC (Signaling)
+    - { port: "7881", proto: "tcp", comment: "LiveKit TCP Signaling" }
+    # LiveKit Media (UDP Range)
+    - { port: "50100:50200", proto: "udp", comment: "LiveKit Media Range" }
 
 - name: Enable UFW with default deny
   community.general.ufw:

@@ -1,0 +1,24 @@
+---
+- name: Create RTC data directory
+  ansible.builtin.file:
+    path: "{{ rtc_data_dir }}"
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Deploy LiveKit Config
+  ansible.builtin.template:
+    src: livekit.yml.j2
+    dest: "{{ rtc_data_dir }}/livekit.yaml"
+    mode: '0644'
+  become: true
+  notify: Restart RTC
+
+- name: Deploy RTC Stack (LiveKit + Auth)
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: docker_service
+  vars:
+    common_docker_service_name: "RTC"
+    common_docker_service_dir: "{{ rtc_data_dir }}"
+    common_docker_service_compose_template: "{{ playbook_dir }}/roles/rtc/templates/docker-compose.yml.j2"
