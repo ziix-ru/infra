@@ -3,31 +3,31 @@ services:
     image: {{ tuwunel_image }}
     container_name: {{ tuwunel_service_name }}
     restart: unless-stopped
-    
+
     volumes:
       - {{ tuwunel_compose_dir }}/tuwunel.toml:/etc/tuwunel/tuwunel.toml:ro
       - {{ tuwunel_data_dir }}:/var/lib/tuwunel
       - /etc/localtime:/etc/localtime:ro
-    
+
     networks:
       - {{ tuwunel_docker_network }}
 {% if tuwunel_livekit_enabled %}
       - livekit_internal
 {% endif %}
-    
+
     environment:
       - TUWUNEL_CONFIG=/etc/tuwunel/tuwunel.toml
       - TUWUNEL_LOG=debug
-    
+
     ulimits:
       nofile:
         soft: {{ tuwunel_ulimit_nofile_soft }}
         hard: {{ tuwunel_ulimit_nofile_hard }}
-    
+
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ tuwunel_docker_network }}"
-      
+
       # Main Matrix homeserver
       - "traefik.http.routers.{{ tuwunel_service_name }}.rule=Host(`{{ tuwunel_domain }}`)"
       - "traefik.http.routers.{{ tuwunel_service_name }}.entrypoints={{ tuwunel_traefik_entrypoint }}"
@@ -35,16 +35,16 @@ services:
       - "traefik.http.routers.{{ tuwunel_service_name }}.tls.certresolver={{ tuwunel_traefik_certresolver }}"
       - "traefik.http.routers.{{ tuwunel_service_name }}.service={{ tuwunel_service_name }}"
       - "traefik.http.services.{{ tuwunel_service_name }}.loadbalancer.server.port={{ tuwunel_port }}"
-      
+
       # Matrix Federation (port 8448)
       - "traefik.http.routers.{{ tuwunel_service_name }}-federation.rule=Host(`{{ tuwunel_domain }}`)"
       - "traefik.http.routers.{{ tuwunel_service_name }}-federation.entrypoints=matrix-federation"
       - "traefik.http.routers.{{ tuwunel_service_name }}-federation.tls=true"
       - "traefik.http.routers.{{ tuwunel_service_name }}-federation.tls.certresolver={{ tuwunel_traefik_certresolver }}"
       - "traefik.http.routers.{{ tuwunel_service_name }}-federation.service={{ tuwunel_service_name }}"
-      
+
       # Well-known delegation удален, так как теперь работает отдельный сервис wellknown
-      
+
       # Autoheal OFF
       - "autoheal=false"
 
@@ -61,16 +61,16 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ tuwunel_docker_network }}"
-      
-      # Слушаем ОБА домена: базовый и matrix. Используем Path для точного совпадения.
-      - "traefik.http.routers.matrix-wellknown-static.rule=(Host(`{{ base_domain }}`) || Host(`{{ tuwunel_domain }}`)) && Path(`/.well-known/matrix/client`)"
+
+      # Слушаем ОБА домена. Используем PathPrefix, чтобы ловить и /client, и /server
+      - "traefik.http.routers.matrix-wellknown-static.rule=(Host(`{{ base_domain }}`) || Host(`{{ tuwunel_domain }}`)) && PathPrefix(`/.well-known/matrix`)"
       - "traefik.http.routers.matrix-wellknown-static.entrypoints={{ tuwunel_traefik_entrypoint }}"
       - "traefik.http.routers.matrix-wellknown-static.tls=true"
       - "traefik.http.routers.matrix-wellknown-static.tls.certresolver={{ tuwunel_traefik_certresolver }}"
-      
+
       # Высокий приоритет (перекрывает любые другие правила)
       - "traefik.http.routers.matrix-wellknown-static.priority=200"
-      
+
       - "autoheal=false"
 
 {% if tuwunel_livekit_enabled %}
@@ -79,24 +79,24 @@ services:
     container_name: {{ tuwunel_livekit_service_name }}
     restart: unless-stopped
     command: --config /etc/livekit.yaml
-    
+
     networks:
       - {{ tuwunel_docker_network }}
       - livekit_internal
-    
+
     ports:
       - "{{ tuwunel_livekit_http_port }}:{{ tuwunel_livekit_http_port }}"
       - "{{ tuwunel_livekit_tcp_port }}:{{ tuwunel_livekit_tcp_port }}"
       - "{{ tuwunel_livekit_udp_start }}-{{ tuwunel_livekit_udp_end }}:{{ tuwunel_livekit_udp_start }}-{{ tuwunel_livekit_udp_end }}/udp"
-    
+
     volumes:
       - {{ tuwunel_livekit_dir }}/livekit.yaml:/etc/livekit.yaml:ro
       - /etc/localtime:/etc/localtime:ro
-    
+
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ tuwunel_docker_network }}"
-      
+
       # LiveKit HTTP/WebSocket
       - "traefik.http.routers.livekit-http.rule=Host(`{{ tuwunel_livekit_domain }}`)"
       - "traefik.http.routers.livekit-http.entrypoints={{ tuwunel_traefik_entrypoint }}"
@@ -104,14 +104,14 @@ services:
       - "traefik.http.routers.livekit-http.tls.certresolver={{ tuwunel_traefik_certresolver }}"
       - "traefik.http.routers.livekit-http.priority=1"
       - "traefik.http.services.livekit-http.loadbalancer.server.port={{ tuwunel_livekit_http_port }}"
-      
+
       - "autoheal=false"
 
   {{ tuwunel_jwt_service_name }}:
     image: {{ tuwunel_jwt_image }}
     container_name: {{ tuwunel_jwt_service_name }}
     restart: unless-stopped
-    
+
     environment:
       - LIVEKIT_JWT_PORT={{ tuwunel_jwt_port }}
       # ВАЖНО: Используем публичный HTTPS адрес, чтобы клиент (браузер) не ругался на Mixed Content
@@ -120,18 +120,18 @@ services:
       - LIVEKIT_SECRET={{ tuwunel_livekit_secret }}
       - LIVEKIT_FULL_ACCESS_HOMESERVERS={{ tuwunel_server_name }}
       - LIVEKIT_LOG_LEVEL=debug
-    
+
     networks:
       - {{ tuwunel_docker_network }}
       - livekit_internal
-    
+
     volumes:
       - /etc/localtime:/etc/localtime:ro
-    
+
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ tuwunel_docker_network }}"
-      
+
       # lk-jwt-service endpoints
       - "traefik.http.routers.{{ tuwunel_jwt_service_name }}.rule=Host(`{{ tuwunel_livekit_domain }}`) && (PathPrefix(`/sfu/get`) || PathPrefix(`/healthz`))"
       - "traefik.http.routers.{{ tuwunel_jwt_service_name }}.entrypoints={{ tuwunel_traefik_entrypoint }}"
@@ -139,7 +139,7 @@ services:
       - "traefik.http.routers.{{ tuwunel_jwt_service_name }}.tls.certresolver={{ tuwunel_traefik_certresolver }}"
       - "traefik.http.routers.{{ tuwunel_jwt_service_name }}.priority=100"
       - "traefik.http.services.{{ tuwunel_jwt_service_name }}.loadbalancer.server.port={{ tuwunel_jwt_port }}"
-      
+
       - "autoheal=false"
 {% endif %}
 

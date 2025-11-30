@@ -16,7 +16,7 @@ tuwunel_jwt_image: "ghcr.io/element-hq/lk-jwt-service:latest"
 
 # Domain configuration
 tuwunel_domain: "{{ matrix_domain | default('matrix.' ~ base_domain) }}"
-tuwunel_server_name: "{{ tuwunel_domain }}"
+tuwunel_server_name: "{{ base_domain }}"
 tuwunel_livekit_domain: "livekit.{{ base_domain }}"
 tuwunel_livekit_url: "ws://{{ tuwunel_livekit_service_name }}:{{ tuwunel_livekit_http_port }}"
 
@@ -30,7 +30,7 @@ tuwunel_jwt_port: 8081
 
 # Features
 tuwunel_livekit_enabled: true
-tuwunel_allow_registration: false
+tuwunel_allow_registration: true
 tuwunel_allow_federation: true
 tuwunel_allow_encryption: true
 
