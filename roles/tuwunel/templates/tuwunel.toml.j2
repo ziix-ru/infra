@@ -25,9 +25,9 @@ allow_device_name_federation = false
 max_request_size = {{ tuwunel_max_request_size }}
 trusted_servers = ["matrix.org"]
 
-# Logging - DEBUG для troubleshooting
-log = "debug"
-log_colors = true
+# Logging
+log = "{{ tuwunel_log_level }}"
+log_colors = {{ tuwunel_log_colors | lower }}
 
 {% if tuwunel_livekit_enabled %}
 # Well-known delegation
@@ -41,7 +41,6 @@ type = "livekit"
 livekit_service_url = "https://{{ tuwunel_livekit_domain }}"
 livekit_sfu_url = "https://{{ tuwunel_livekit_domain }}/sfu/get"
 
-# УБРАНО: experimental_features - не поддерживается в 1.4.6
 # Delayed events для автовыхода из прерванных звонков
 max_event_delay_duration = "24h"
 {% endif %}

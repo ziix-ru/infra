@@ -1,8 +1,30 @@
 ---
-- name: Restart tuwunel
+- name: Restart tuwunel service
   community.docker.docker_compose_v2:
     project_src: "{{ tuwunel_compose_dir }}"
+    services: ["{{ tuwunel_service_name }}"]
     state: restarted
   become: true
   become_user: "{{ deploy_user }}"
   listen: restart tuwunel
+
+- name: Restart wellknown service
+  community.docker.docker_compose_v2:
+    project_src: "{{ tuwunel_compose_dir }}"
+    services: ["wellknown"]
+    state: restarted
+  become: true
+  become_user: "{{ deploy_user }}"
+  listen: restart wellknown
+
+- name: Restart livekit services
+  community.docker.docker_compose_v2:
+    project_src: "{{ tuwunel_compose_dir }}"
+    services:
+      - "{{ tuwunel_livekit_service_name }}"
+      - "{{ tuwunel_jwt_service_name }}"
+    state: restarted
+  become: true
+  become_user: "{{ deploy_user }}"
+  when: tuwunel_livekit_enabled
+  listen: restart livekit

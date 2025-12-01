@@ -25,9 +25,6 @@
     - role: tinyauth
       tags: tinyauth
 
-    - role: matrix
-      tags: matrix
-
     - role: eturnal
       tags: eturnal
 

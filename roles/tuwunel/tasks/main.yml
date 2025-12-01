@@ -1,4 +1,5 @@
 ---
+# Directories
 - name: Create tuwunel directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -11,6 +12,7 @@
     - "{{ tuwunel_data_dir }}"
     - "{{ tuwunel_livekit_dir }}"
   become: true
+  tags: [setup, directories]
 
 - name: Create wellknown directory
   ansible.builtin.file:
@@ -20,28 +22,34 @@
     group: "{{ deploy_user }}"
     mode: "0755"
   become: true
+  tags: [setup, directories]
 
+# Tuwunel Config
 - name: Generate tuwunel.toml configuration
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/roles/tuwunel/templates/tuwunel.toml.j2"
+    src: tuwunel.toml.j2
     dest: "{{ tuwunel_compose_dir }}/tuwunel.toml"
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: "0644"
   become: true
   notify: restart tuwunel
+  tags: [config, tuwunel]
 
+# LiveKit Config
 - name: Generate livekit.yaml configuration
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/roles/tuwunel/templates/livekit.yaml.j2"
+    src: livekit.yaml.j2
     dest: "{{ tuwunel_livekit_dir }}/livekit.yaml"
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: "0644"
   become: true
   when: tuwunel_livekit_enabled
-  notify: restart tuwunel
+  notify: restart livekit
+  tags: [config, livekit]
 
+# Well-Known Delegation
 - name: Generate Well-Known JSON
   ansible.builtin.template:
     src: wellknown_client.json.j2
@@ -50,6 +58,8 @@
     group: "{{ deploy_user }}"
     mode: "0644"
   become: true
+  notify: restart wellknown
+  tags: [config, wellknown]
 
 - name: Generate Well-Known Nginx config
   ansible.builtin.template:
@@ -59,7 +69,10 @@
     group: "{{ deploy_user }}"
     mode: "0644"
   become: true
+  notify: restart wellknown
+  tags: [config, wellknown]
 
+# Firewall
 - name: Configure UFW for Matrix and LiveKit ports
   community.general.ufw:
     rule: allow
@@ -72,7 +85,9 @@
     - { port: "{{ tuwunel_livekit_udp_start }}:{{ tuwunel_livekit_udp_end }}", proto: "udp", comment: "LiveKit WebRTC" }
   become: true
   when: tuwunel_livekit_enabled
+  tags: [firewall, security]
 
+# Deployment
 - name: Deploy tuwunel stack
   ansible.builtin.include_role:
     name: common
@@ -86,3 +101,4 @@
       - "{{ tuwunel_data_dir }}"
       - "{{ tuwunel_livekit_dir }}"
       - "{{ tuwunel_data_dir }}/../wellknown"
+  tags: [deploy, docker]

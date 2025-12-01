@@ -13,9 +13,9 @@ rtc:
 keys:
   {{ tuwunel_livekit_key }}: {{ tuwunel_livekit_secret }}
 
-# Logging - DEBUG для troubleshooting
+# Logging
 logging:
-  level: debug
+  level: {{ tuwunel_livekit_log_level }}
   sample: false
 
 # TURN отключен
