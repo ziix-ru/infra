@@ -10,7 +10,7 @@
   ansible.builtin.file:
     path: "{{ restic_compose_dir }}/build"
     state: directory
-    mode: "0755" # <--- Fix: Явно задаем права
+    mode: "0755"
 
 - name: Create Dockerfile
   ansible.builtin.copy:
@@ -18,8 +18,8 @@
     content: |
       FROM restic/restic:latest
       RUN apk add --no-cache rclone ca-certificates
-    mode: "0644" # <--- Fix: Явно задаем права
-  register: restic_dockerfile # <--- Fix: Добавили префикс restic_
+    mode: "0644"
+  register: restic_dockerfile
 
 - name: Build local Restic image
   community.docker.docker_image:
@@ -28,13 +28,23 @@
     build:
       path: "{{ restic_compose_dir }}/build"
       pull: true
-    force_source: "{{ restic_dockerfile.changed }}" # <--- Fix: Используем новую переменную
+    force_source: "{{ restic_dockerfile.changed }}"
 
 # --- 2. Конфиги и Скрипты ---
+# 🆕 Создаем отдельную папку для конфигов, чтобы монтировать её целиком
+- name: Create config directory
+  ansible.builtin.file:
+    path: "{{ restic_compose_dir }}/config"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Deploy Rclone config
   ansible.builtin.copy:
     content: "{{ restic_rclone_config }}"
-    dest: "{{ restic_compose_dir }}/rclone.conf"
+    # 🆕 Кладем конфиг ВНУТРЬ папки config
+    dest: "{{ restic_compose_dir }}/config/rclone.conf"
     mode: '0600'
   no_log: true
 
@@ -61,11 +71,9 @@
   ansible.builtin.command:
     cmd: docker compose up --no-start --remove-orphans
     chdir: "{{ restic_compose_dir }}"
-  register: restic_create_container  # <--- Fix: Добавили префикс restic_
-  # Идемпотентность: считаем changed только если докер реально что-то создал
+  register: restic_create_container
   changed_when:
     - "'Created' in restic_create_container.stderr or 'Recreated' in restic_create_container.stderr"
-
 
 # --- 4. Systemd ---
 - name: Deploy Systemd Units
@@ -88,3 +96,9 @@
   loop:
     - restic-backup.timer
     - restic-check.timer
+
+# 🧹 Уборка: Удаляем старый файл rclone.conf из корня, если он там остался
+- name: Cleanup old rclone.conf
+  ansible.builtin.file:
+    path: "{{ restic_compose_dir }}/rclone.conf"
+    state: absent

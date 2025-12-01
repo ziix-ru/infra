@@ -3,20 +3,21 @@ services:
     image: {{ restic_image }}
     container_name: {{ restic_service_name }}
     hostname: "{{ ansible_hostname }}"
-    
+
     environment:
       - RESTIC_REPOSITORY={{ restic_repo }}
       - RESTIC_PASSWORD={{ restic_password }}
       - RCLONE_CONFIG=/root/.config/rclone/rclone.conf
       - RCLONE_DRIVE_CHUNK_SIZE=128M
       - RCLONE_TIMEOUT=10m
-    
+
     volumes:
       - ./entrypoint.sh:/entrypoint.sh:ro
-      - ./rclone.conf:/root/.config/rclone/rclone.conf:ro
+      # 🆕 Монтируем ПАПКУ с правами RW
+      - ./config:/root/.config/rclone:rw
 {% for mount in restic_mounts %}
       - {{ mount.src }}:{{ mount.dst }}:ro
 {% endfor %}
-    
+
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     restart: "no"

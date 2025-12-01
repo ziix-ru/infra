@@ -26,7 +26,7 @@ restic_keep_daily: 7
 restic_keep_weekly: 4
 
 # --- Сервис для остановки ---
-restic_stop_service: "matrix"
+restic_stop_service: "tuwunel"
 
 # --- Пути ---
 restic_mounts:
