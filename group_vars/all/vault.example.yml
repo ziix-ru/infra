@@ -1,0 +1,67 @@
+# 🌍 [ GLOBAL INFRASTRUCTURE ]
+vault_infra:
+  server_ip: "1.2.3.4"
+  admin_email: "admin@example.com"
+  admin_password: "CHANGE_ME_STRONG_PASSWORD"
+
+# 🔑 [ SSH ACCESS ]
+vault_ssh_keys:
+  additional_keys:
+    - "ssh-ed25519 AAAA... user@host" # Дополнительные SSH ключи для доступа
+
+# 🆔 [ IDENTITY & AUTH ]
+vault_identity:
+  # LLDAP Backend
+  lldap:
+    admin_login: "admin"
+    admin_email: "admin@example.com"
+    admin_password: "CHANGE_ME_LLDAP_PASSWORD"
+    # Генерация: openssl rand -base64 32
+    jwt_secret: "CHANGE_ME_BASE64_STRING"
+    key_seed: "CHANGE_ME_BASE64_STRING"
+
+  # TinyAuth & PocketID
+  tinyauth:
+    # Генерация: uuidgen
+    pocketid_client_id: "00000000-0000-0000-0000-000000000000"
+    # Генерация: openssl rand -hex 32
+    pocketid_client_secret: "CHANGE_ME_RANDOM_SECRET"
+
+  # Eturnal (TURN Server)
+  eturnal:
+    # Генерация: openssl rand -hex 32
+    secret: "CHANGE_ME_TURN_SECRET"
+
+# 💬 [ MATRIX / TUWUNEL ]
+vault_matrix:
+  # Генерация: openssl rand -hex 32
+  registration_token: "CHANGE_ME_REGISTRATION_TOKEN"
+
+  livekit:
+    # API Key для LiveKit
+    key: "CHANGE_ME_API_KEY"
+    # API Secret для LiveKit
+    secret: "CHANGE_ME_API_SECRET"
+
+# 🐳 [ SERVICES ]
+vault_services:
+  docker_hub:
+    password: "dckr_pat_..." # Токен доступа к Docker Hub (необязательно)
+
+  traefik:
+    # Генерация: echo $(htpasswd -nb admin PASSWORD) | sed -e s/\\$/\\$\\$/g
+    dashboard_auth: "admin:$apr1$..."
+
+# 💾 [ BACKUP & STORAGE ]
+vault_backup:
+  restic_password: "CHANGE_ME_BACKUP_PASSWORD"
+
+  # Конфиг Rclone (обычно результат команды `rclone config file`)
+  rclone_config: |
+    [gdrive]
+    type = drive
+    client_id = ...
+    client_secret = ...
+    scope = drive
+    token = {"access_token":"..."}
+    team_drive =

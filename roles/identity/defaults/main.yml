@@ -1,7 +1,6 @@
 ---
 identity_service_name: "identity"
 identity_compose_dir: "{{ docker_config_dir }}/{{ identity_service_name }}"
-# Общая папка данных, внутри будут /lldap, /pocketid
 identity_data_dir: "{{ docker_data_dir }}/{{ identity_service_name }}"
 
 # ==========================================
@@ -14,15 +13,16 @@ identity_lldap_port_ldap: 3890
 identity_lldap_base_dn: "dc=ziix,dc=ru"
 
 # Admin & Secrets (from Vault)
-identity_lldap_admin_dn: "{{ vault_lldap_admin_login }}"
-identity_lldap_admin_pass: "{{ vault_lldap_admin_password }}"
-identity_lldap_key_seed: "{{ vault_lldap_key_seed }}"
-identity_lldap_jwt_secret: "{{ vault_lldap_jwt_secret }}"
+identity_lldap_admin_dn: "{{ vault_identity.lldap.admin_login }}"
+identity_lldap_admin_pass: "{{ vault_identity.lldap.admin_password }}"
+identity_lldap_admin_email: "{{ vault_identity.lldap.admin_email }}"
+identity_lldap_key_seed: "{{ vault_identity.lldap.key_seed }}"
+identity_lldap_jwt_secret: "{{ vault_identity.lldap.jwt_secret }}"
 
 # ==========================================
 # PocketID Configuration
 # ==========================================
-identity_pocketid_image: "ghcr.io/pocket-id/pocket-id:v1"
+identity_pocketid_image: "ghcr.io/pocket-id/pocket-id:latest"
 identity_pocketid_domain: "auth.{{ base_domain }}"
 identity_pocketid_port: "1411"
 identity_pocketid_puid: "{{ default_puid }}"
@@ -34,33 +34,31 @@ identity_pocketid_maxmind_license_key: ""
 identity_pocketid_ui_config_disabled: "true"
 
 # LDAP Integration Settings
-# Указываем конкретную папку для поиска людей, иначе не найдет
 identity_pocketid_ldap_base: "ou=people,{{ identity_lldap_base_dn }}"
 identity_pocketid_ldap_admin_group: "lldap_admin"
 
-# Mappings (Исправлено: используем 'uid', так надежнее для LLDAP)
+# Mappings
 identity_pocketid_ldap_attr_user_uid: "uid"
 identity_pocketid_ldap_attr_user_username: "uid"
 identity_pocketid_ldap_attr_user_email: "mail"
-identity_pocketid_ldap_attr_user_firstname: "givenName"
+identity_pocketid_ldap_attr_user_firstname: "givenname"
 identity_pocketid_ldap_attr_user_lastname: "sn"
-identity_pocketid_ldap_attr_user_picture: "jpegPhoto"
+identity_pocketid_ldap_attr_user_picture: "jpegphoto"
 identity_pocketid_ldap_attr_group_member: "member"
-# Для групп тоже лучше uid или cn
 identity_pocketid_ldap_attr_group_uid: "cn"
 identity_pocketid_ldap_attr_group_name: "cn"
 
 # ==========================================
 # TinyAuth Configuration
 # ==========================================
-identity_tinyauth_image: "ghcr.io/steveiliop56/tinyauth:v4"
+identity_tinyauth_image: "ghcr.io/steveiliop56/tinyauth:latest"
 identity_tinyauth_domain: "tinyauth.{{ base_domain }}"
 identity_tinyauth_port: "3000"
 identity_tinyauth_auto_redirect: true
 
-# Secrets (from Vault)
-identity_tinyauth_client_id: "{{ vault_tinyauth_pocketid_client_id }}"
-identity_tinyauth_client_secret: "{{ vault_tinyauth_pocketid_client_secret }}"
+# Secrets (from Vault) - Могут быть пустыми при первом запуске
+identity_tinyauth_client_id: "{{ vault_identity.tinyauth.pocketid_client_id | default('') }}"
+identity_tinyauth_client_secret: "{{ vault_identity.tinyauth.pocketid_client_secret | default('') }}"
 
 # OAuth URLs
 identity_tinyauth_pocketid_public_url: "https://{{ identity_pocketid_domain }}"

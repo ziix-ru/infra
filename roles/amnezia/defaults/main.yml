@@ -1,5 +1,5 @@
 amnezia_service_name: "amnezia"
-amnezia_image: "alexishw/amneziawg-web-ui:v1.1"
+amnezia_image: "alexishw/amneziawg-web-ui:latest"
 
 amnezia_data_dir: "{{ docker_data_dir }}/{{ amnezia_service_name }}"
 amnezia_compose_dir: "{{ docker_config_dir }}/{{ amnezia_service_name }}"

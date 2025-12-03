@@ -2,7 +2,7 @@ all:
   # Глобальные переменные для всех хостов
   vars:
     # Магия: Ansible возьмет значение из Vault при запуске
-    ansible_host: "{{ vault_server_ip }}"
+    ansible_host: "{{ vault_infra.server_ip }}"
     hostname: tw01
 
   children:

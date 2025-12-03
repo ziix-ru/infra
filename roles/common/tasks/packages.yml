@@ -18,6 +18,7 @@
       - gnupg
       - iperf3
       - zram-tools
+      - jq
     state: present
 
 - name: Disable MOTD banner

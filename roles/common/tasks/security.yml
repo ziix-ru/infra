@@ -6,7 +6,7 @@
     state: present
     key: "{{ item }}"
   # FIX: Убрал пробелы внутри [ ... ]
-  loop: "{{ [lookup('file', lookup('env', 'HOME') + '/.ssh/id_ed25519.pub')] + (vault_additional_ssh_keys | default([])) }}"
+  loop: "{{ [lookup('file', lookup('env', 'HOME') + '/.ssh/id_ed25519.pub')] + (vault_ssh_keys.additional_keys | default([])) }}"
 
 # --- 2. Firewall (UFW) ---
 - name: Limit SSH connections (anti-bruteforce)

@@ -1,5 +1,5 @@
 traefik_service_name: "traefik"
-traefik_image: "traefik:v3.6.2"
+traefik_image: "traefik:latest"
 
 traefik_data_dir: "{{ docker_data_dir }}/{{ traefik_service_name }}"
 traefik_compose_dir: "{{ docker_config_dir }}/{{ traefik_service_name }}"
@@ -15,4 +15,4 @@ traefik_acme_email: "{{ admin_email }}"
 traefik_acme_storage: "/acme.json"
 traefik_acme_staging: "false"
 
-traefik_dashboard_auth: "{{ vault_traefik_dashboard_auth }}"
+traefik_dashboard_auth: "{{ vault_services.traefik.dashboard_auth }}"

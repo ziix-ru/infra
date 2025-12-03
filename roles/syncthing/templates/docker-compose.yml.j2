@@ -4,6 +4,11 @@ services:
     image: {{ syncthing_image }}
     restart: unless-stopped
 
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
     environment:
       PUID: "{{ syncthing_puid }}"
       PGID: "{{ syncthing_pgid }}"

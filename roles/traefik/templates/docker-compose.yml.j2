@@ -26,6 +26,10 @@ services:
       start_period: 10s
 
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
     labels:
       traefik.enable: "true"

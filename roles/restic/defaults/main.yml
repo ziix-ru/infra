@@ -14,8 +14,8 @@ restic_check_schedule: "Sun *-*-* 05:00:00"
 restic_check_subset: "5%"
 
 # --- Секреты (из Vault) ---
-restic_password: "{{ vault_restic_password }}"
-restic_rclone_config: "{{ vault_restic_rclone_config }}"
+restic_password: "{{ vault_backup.restic_password }}"
+restic_rclone_config: "{{ vault_backup.rclone_config }}"
 
 # --- Репозиторий ---
 restic_repo: "rclone:gdrive:vps_backups"

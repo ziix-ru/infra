@@ -3,6 +3,10 @@ services:
     image: {{ autoheal_image }}
     container_name: {{ autoheal_service_name }}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
     environment:
       AUTOHEAL_CONTAINER_LABEL: "{{ autoheal_container_label }}"
       AUTOHEAL_INTERVAL: "{{ autoheal_interval }}"

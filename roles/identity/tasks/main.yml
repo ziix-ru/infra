@@ -1,14 +1,13 @@
 ---
-- name: Validate required Identity secrets
+- name: Validate required Identity secrets (Basic checks)
   ansible.builtin.assert:
     that:
-      - vault_lldap_admin_password is defined and vault_lldap_admin_password | length > 0
-      - vault_lldap_key_seed is defined
-      - vault_tinyauth_pocketid_client_id is defined
-    fail_msg: "CRITICAL: Missing required Vault secrets for Identity stack!"
+      - vault_identity.lldap.admin_password is defined
+      - vault_identity.lldap.key_seed is defined
+    fail_msg: "CRITICAL: Missing basic Vault secrets for LLDAP!"
   tags: [deploy, identity, check]
 
-- name: Deploy Identity Stack (LLDAP + PocketID + TinyAuth)
+- name: Deploy Identity Stack (Initial)
   ansible.builtin.include_role:
     name: common
     tasks_from: docker_service
@@ -19,7 +18,178 @@
     common_docker_service_data_dirs:
       - "{{ identity_data_dir }}/lldap"
       - "{{ identity_data_dir }}/pocketid/data"
+      - "{{ identity_data_dir }}/tinyauth"
     common_docker_service_owner: "{{ default_puid | default('1000') }}"
     common_docker_service_group: "{{ default_pgid | default('1000') }}"
-
   tags: [deploy, identity]
+
+- name: Wait for LLDAP container to be healthy
+  ansible.builtin.command:
+    cmd: docker inspect --format='{{ '{{' }}.State.Health.Status{{ '}}' }}' lldap
+  register: identity_lldap_health
+  retries: 30
+  delay: 2
+  until: identity_lldap_health.stdout == 'healthy'
+  changed_when: false
+  tags: [deploy, identity, bootstrap]
+
+- name: Bootstrap LLDAP admin attributes
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      docker exec lldap sh -c '
+        TOKEN=$(wget -qO- \
+          --post-data="{\"username\":\"{{ identity_lldap_admin_dn }}\",\"password\":\"{{ identity_lldap_admin_pass }}\"}" \
+          --header="Content-Type: application/json" \
+          http://127.0.0.1:{{ identity_lldap_port_http }}/auth/simple/login \
+          | grep -o "\"token\":\"[^\"]*" | cut -d"\"" -f4)
+
+        [ -z "$TOKEN" ] && echo "ERROR: Failed to get JWT token" && exit 1
+
+        MUTATION="mutation{updateUser(user:{id:\\\"{{ identity_lldap_admin_dn }}\\\", \
+          firstName:\\\"{{ identity_lldap_admin_dn | capitalize }}\\\", \
+          email:\\\"{{ identity_lldap_admin_email }}\\\"}){ok}}"
+
+        RESULT=$(wget -qO- \
+          --post-data="{\"query\":\"$MUTATION\"}" \
+          --header="Content-Type: application/json" \
+          --header="Authorization: Bearer $TOKEN" \
+          http://127.0.0.1:{{ identity_lldap_port_http }}/api/graphql)
+
+        echo "$RESULT"
+        echo "$RESULT" | grep -q "\"ok\":true"
+      '
+    executable: /bin/bash
+  register: identity_lldap_bootstrap
+  changed_when: identity_lldap_bootstrap.rc == 0
+  failed_when: identity_lldap_bootstrap.rc != 0
+  no_log: false
+  notify: Restart PocketID for LDAP sync
+  tags: [deploy, identity, bootstrap]
+
+- name: Flush handlers to restart PocketID immediately
+  ansible.builtin.meta: flush_handlers
+  tags: [deploy, identity, bootstrap]
+
+- name: Wait for PocketID LDAP sync to complete
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      docker logs pocketid --tail 100 | grep -q "Job run successfully.*name=SyncLdap"
+    executable: /bin/bash
+  register: identity_pocketid_sync_check
+  retries: 30
+  delay: 2
+  until: identity_pocketid_sync_check.rc == 0
+  changed_when: false
+  tags: [deploy, identity, bootstrap]
+
+# 🤖 ULTRA-AUTOMATION: Auto-configure OIDC (FORCE SECRET GEN)
+- name: "⚡ AUTO-SETUP: Setup API Key & OIDC Client via One-Time Token"
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      # Удаляем старую куку
+      rm -f /tmp/pocket_cookie.txt
+      sleep 5
+
+      # 1. Ссылка входа
+      LINK_OUTPUT=$(docker exec pocketid /app/pocket-id one-time-access-token {{ identity_lldap_admin_dn }})
+      TOKEN=$(echo "$LINK_OUTPUT" | grep -o 'https://[^ ]*' | awk -F/ '{print $NF}')
+      if [ -z "$TOKEN" ]; then echo "FAIL: No Token"; exit 1; fi
+
+      # 2. Логин -> Cookie
+      for i in {1..5}; do
+        curl -s -k -c /tmp/pocket_cookie.txt -X POST "https://{{ identity_pocketid_domain }}/api/one-time-access-token/$TOKEN" > /dev/null
+        if grep -q "__Host-access_token" /tmp/pocket_cookie.txt; then break; fi
+        sleep 2
+      done
+
+      if ! grep -q "__Host-access_token" /tmp/pocket_cookie.txt; then
+         echo "WARN: Cookie not found. Login failed?"
+         exit 0
+      fi
+
+      # 3. API Key (через Cookie)
+      EXPIRE_DATE="2035-01-01T00:00:00Z"
+      API_KEY_RESP=$(curl -s -k -b /tmp/pocket_cookie.txt \
+        -X POST "https://{{ identity_pocketid_domain }}/api/api-keys" \
+        -H "Content-Type: application/json" \
+        -d "{\"name\":\"Ansible Auto Key\",\"description\":\"Automated\",\"expiresAt\":\"$EXPIRE_DATE\"}")
+      API_TOKEN=$(echo "$API_KEY_RESP" | jq -r '.token // empty')
+
+      # 4. OIDC Client (через Cookie)
+      OIDC_RESP=$(curl -s -k -b /tmp/pocket_cookie.txt \
+        -X POST "https://{{ identity_pocketid_domain }}/api/oidc/clients" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "name": "TinyAuth",
+          "launchUrl": "https://{{ identity_tinyauth_domain }}",
+          "callbackUrls": ["https://{{ identity_tinyauth_domain }}/api/oauth/callback/pocketid"],
+          "pkceEnabled": true,
+          "isPublic": false
+        }')
+      CLIENT_ID=$(echo "$OIDC_RESP" | jq -r '.id // empty')
+
+      if [ -z "$CLIENT_ID" ]; then
+         echo "INFO: Failed to create client."
+         exit 0
+      fi
+
+      # 5. ПРИНУДИТЕЛЬНАЯ ГЕНЕРАЦИЯ СЕКРЕТА (если его нет)
+      CLIENT_SECRET=$(echo "$OIDC_RESP" | jq -r '.credentials.secret // .clientSecret // empty')
+
+      if [ -z "$CLIENT_SECRET" ]; then
+          # Если секрета нет — генерируем новый!
+          SECRET_RESP=$(curl -s -k -b /tmp/pocket_cookie.txt \
+            -X POST "https://{{ identity_pocketid_domain }}/api/oidc/clients/$CLIENT_ID/secret" \
+            -H "Content-Type: application/json")
+          # Парсим секрет из ответа генерации
+          CLIENT_SECRET=$(echo "$SECRET_RESP" | jq -r '.secret // empty')
+      fi
+
+      if [ -n "$CLIENT_ID" ] && [ -n "$CLIENT_SECRET" ]; then
+        echo "ID:$CLIENT_ID"
+        echo "SECRET:$CLIENT_SECRET"
+        if [ -n "$API_TOKEN" ]; then echo "TOKEN:$API_TOKEN"; fi
+      else
+        echo "INFO: Client created but SECRET is still missing. Weird."
+      fi
+    executable: /bin/bash
+  register: identity_auto_oidc_setup
+  failed_when: false
+  changed_when: "'SECRET:' in identity_auto_oidc_setup.stdout"
+  tags: [deploy, identity, bootstrap, magic]
+
+- name: Set Dynamic OIDC Facts
+  ansible.builtin.set_fact:
+    identity_tinyauth_dynamic_id: "{{ identity_auto_oidc_setup.stdout | regex_search('ID:([a-zA-Z0-9-]+)', '\\1') | first }}"
+    identity_tinyauth_dynamic_secret: "{{ identity_auto_oidc_setup.stdout | regex_search('SECRET:([a-zA-Z0-9-]+)', '\\1') | first }}"
+    identity_pocketid_auto_api_key: "{{ identity_auto_oidc_setup.stdout | regex_search('TOKEN:([a-zA-Z0-9_]+)', '\\1') | first | default('NotCreated') }}"
+  when:
+    - identity_auto_oidc_setup.rc == 0
+    - "'SECRET:' in identity_auto_oidc_setup.stdout"
+  tags: [deploy, identity, bootstrap, magic]
+
+- name: Show Generated Secrets (SAVE TO VAULT!)
+  ansible.builtin.debug:
+    msg:
+      - "🎉 ULTRA-AUTOMATION SUCCESS!"
+      - "TinyAuth Client ID: {{ identity_tinyauth_dynamic_id }}"
+      - "TinyAuth Secret: {{ identity_tinyauth_dynamic_secret }}"
+      - "PocketID API Key: {{ identity_pocketid_auto_api_key }}"
+      - "⚠️  TinyAuth is being re-deployed with these credentials NOW."
+      - "⚠️  PLEASE COPY THESE TO vault.yml FOR FUTURE RUNS!"
+  when: identity_tinyauth_dynamic_secret is defined
+  tags: [deploy, identity, bootstrap, magic]
+
+- name: Re-render and Update TinyAuth with new secrets
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: docker_service
+  vars:
+    common_docker_service_name: "Identity Stack Update"
+    common_docker_service_dir: "{{ identity_compose_dir }}"
+    common_docker_service_compose_template: "{{ playbook_dir }}/roles/identity/templates/docker-compose.yml.j2"
+  when: identity_tinyauth_dynamic_secret is defined
+  tags: [deploy, identity, bootstrap, magic]

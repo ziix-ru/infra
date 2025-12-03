@@ -24,7 +24,7 @@ tuwunel_port: 8008
 tuwunel_livekit_http_port: 7880
 tuwunel_livekit_tcp_port: 7881
 tuwunel_livekit_udp_start: 50000
-tuwunel_livekit_udp_end: 50999
+tuwunel_livekit_udp_end: 50050
 tuwunel_jwt_port: 8081
 
 # Features
@@ -34,9 +34,9 @@ tuwunel_allow_federation: true
 tuwunel_allow_encryption: true
 
 # Secrets
-tuwunel_registration_token: "{{ vault_tuwunel_registration_token | default('') }}"
-tuwunel_livekit_key: "{{ vault_tuwunel_livekit_key }}"
-tuwunel_livekit_secret: "{{ vault_tuwunel_livekit_secret }}"
+tuwunel_registration_token: "{{ vault_matrix.registration_token | default('') }}"
+tuwunel_livekit_key: "{{ vault_matrix.livekit.key }}"
+tuwunel_livekit_secret: "{{ vault_matrix.livekit.secret }}"
 
 # Traefik
 tuwunel_docker_network: "{{ docker_network_name }}"
@@ -57,9 +57,9 @@ tuwunel_jwt_log_level: "info"
 # LDAP Integration (OFFICIAL CONFIG)
 tuwunel_ldap_enabled: true
 tuwunel_ldap_uri: "ldap://lldap:3890"
-tuwunel_ldap_base_dn: "dc=ziix,dc=ru"
-tuwunel_ldap_bind_dn: "uid=admin,ou=people,dc=ziix,dc=ru"
-tuwunel_ldap_bind_password: "{{ vault_lldap_admin_password | default('') }}"
+tuwunel_ldap_base_dn: "ou=people,dc=ziix,dc=ru"
+tuwunel_ldap_bind_dn: "uid={{ vault_identity.lldap.admin_login }},ou=people,dc=ziix,dc=ru"
+tuwunel_ldap_bind_password: "{{ vault_identity.lldap.admin_password | default('') }}"
 # Файл внутри контейнера
 tuwunel_ldap_bind_password_file: "/var/lib/tuwunel/.ldap_bind_password"
 # Фильтр по документации (используем {username})

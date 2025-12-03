@@ -16,8 +16,8 @@ default_pgid: "1000"
 default_timezone: "Europe/Moscow"
 
 # === КРЕДЫ ===
-admin_email: "{{ vault_admin_email }}"
-admin_password: "{{ vault_admin_password }}"
+admin_email: "{{ vault_infra.admin_email }}"
+admin_password: "{{ vault_infra.admin_password }}"
 
 # Tuwunel Matrix homeserver
 tuwunel_enabled: true

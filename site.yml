@@ -29,9 +29,6 @@
     - role: tuwunel  # Matrix (Зависит от Identity для LDAP)
       tags: tuwunel
 
-    - role: eturnal  # TURN (Зависит от Matrix/Identity косвенно)
-      tags: eturnal
-
     - role: amnezia
       tags: amnezia
 

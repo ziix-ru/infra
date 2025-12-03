@@ -1,9 +1,0 @@
-services:
-  {{ eturnal_service_name }}:
-    container_name: {{ eturnal_service_name }}
-    image: {{ eturnal_image }}
-    restart: unless-stopped
-    network_mode: "host"
-
-    volumes:
-      - "{{ eturnal_config_dir }}/eturnal.yml:/etc/eturnal.yml:ro"

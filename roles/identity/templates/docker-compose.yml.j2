@@ -68,8 +68,6 @@ services:
       TRUST_PROXY: "{{ identity_pocketid_trust_proxy }}"
       PUID: "{{ identity_pocketid_puid }}"
       PGID: "{{ identity_pocketid_pgid }}"
-      
-      # 🔥 МАГИЯ: Разрешаем настройку через ENV
       UI_CONFIG_DISABLED: "{{ identity_pocketid_ui_config_disabled }}"
 
       # LDAP Auto Config
@@ -80,7 +78,6 @@ services:
       LDAP_URL: "ldap://lldap:{{ identity_lldap_port_ldap }}"
       LDAP_BIND_DN: "uid={{ identity_lldap_admin_dn }},ou=people,{{ identity_lldap_base_dn }}"
       LDAP_BIND_PASSWORD: "{{ identity_lldap_admin_pass }}"
-      # Тут используем правильную базу (ou=people...)
       LDAP_BASE: "{{ identity_pocketid_ldap_base }}"
       LDAP_USER_SEARCH_FILTER: "(objectClass=person)"
       LDAP_USER_GROUP_SEARCH_FILTER: "(objectClass=groupOfUniqueNames)"
@@ -137,14 +134,18 @@ services:
     depends_on:
       pocketid:
         condition: service_healthy
+    volumes:
+      - {{ identity_data_dir }}/tinyauth:/app/data
     environment:
       APP_URL: "https://{{ identity_tinyauth_domain }}"
       TRUST_PROXY: "true"
 {% if identity_tinyauth_auto_redirect | default(false) | bool %}
       OAUTH_AUTO_REDIRECT: "pocketid"
 {% endif %}
-      PROVIDERS_POCKETID_CLIENT_ID: "{{ identity_tinyauth_client_id }}"
-      PROVIDERS_POCKETID_CLIENT_SECRET: "{{ identity_tinyauth_client_secret }}"
+      # 🔥 UPDATE: Используем динамические переменные от Ansible магии, если они есть.
+      PROVIDERS_POCKETID_CLIENT_ID: "{{ identity_tinyauth_dynamic_id | default(identity_tinyauth_client_id) }}"
+      PROVIDERS_POCKETID_CLIENT_SECRET: "{{ identity_tinyauth_dynamic_secret | default(identity_tinyauth_client_secret) }}"
+      
       PROVIDERS_POCKETID_AUTH_URL: "{{ identity_tinyauth_pocketid_public_url }}/authorize"
       PROVIDERS_POCKETID_TOKEN_URL: "{{ identity_tinyauth_pocketid_internal_url }}/api/oidc/token"
       PROVIDERS_POCKETID_USER_INFO_URL: "{{ identity_tinyauth_pocketid_internal_url }}/api/oidc/userinfo"

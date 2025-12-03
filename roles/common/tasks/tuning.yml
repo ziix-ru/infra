@@ -44,12 +44,17 @@
     sysctl_file: /etc/sysctl.d/99-memory.conf
     reload: false
   loop:
+    # Swappiness 10: используем swap только когда память реально кончается
+    # (но ZRAM все равно будет использоваться раньше, так как у него выше приоритет)
     - { name: 'vm.swappiness', value: '10' }
     - { name: 'vm.vfs_cache_pressure', value: '50' }
     - { name: 'vm.dirty_ratio', value: '10' }
     - { name: 'vm.dirty_background_ratio', value: '5' }
   notify: Reload sysctl
 
+# ==========================================
+# 1. ZRAM (Fast compressed RAM-swap)
+# ==========================================
 - name: Configure zram swap (lz4 for lower latency)
   ansible.builtin.copy:
     dest: /etc/default/zramswap
@@ -65,6 +70,46 @@
     enabled: true
     state: started
 
+# ==========================================
+# 2. Disk Swap File (Safety Net for OOM)
+# ==========================================
+- name: Check if swap file exists
+  ansible.builtin.stat:
+    path: /swapfile
+  register: common_swap_file_check  # <--- Добавили префикс common_
+
+- name: Create swap file (4GB)
+  ansible.builtin.command: fallocate -l 4G /swapfile
+  when: not common_swap_file_check.stat.exists
+  changed_when: true  # <--- Явно говорим, что команда меняет состояние
+
+- name: Set permissions on swap file
+  ansible.builtin.file:
+    path: /swapfile
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Format swap file
+  ansible.builtin.command: mkswap /swapfile
+  when: not common_swap_file_check.stat.exists
+  changed_when: true  # <--- Явно говорим, что команда меняет состояние
+
+- name: Enable swap file
+  ansible.builtin.command: swapon /swapfile
+  when: not common_swap_file_check.stat.exists
+  changed_when: true  # <--- Явно говорим, что команда меняет состояние
+  failed_when: false # Ignore if already active
+
+- name: Add swap to fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: '/swapfile none swap sw 0 0'
+    state: present
+
+# ==========================================
+# Network Offloads
+# ==========================================
 - name: Enable network offload features (gro, gso)
   ansible.builtin.command:
     cmd: ethtool -K {{ ansible_default_ipv4.interface }} gro on gso on

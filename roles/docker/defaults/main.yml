@@ -1,2 +1,2 @@
 docker_registry_username: skardiz
-docker_registry_password: "{{ vault_docker_hub_password }}"
+docker_registry_password: "{{ vault_services.docker_hub.password }}"
