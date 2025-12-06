@@ -1,0 +1,68 @@
+services:
+  # 🛡️ SECURITY PROXY: Protect Docker Socket
+  # Only allows listing containers (GET /containers/json).
+  # Blocks all destructive commands (POST/DELETE/etc).
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: {{ homepage_service_name }}-docker-proxy
+    restart: {{ homepage_restart_policy }}
+    environment:
+      CONTAINERS: 1 # Allow listing containers
+      POST: 0       # DENY any state changes
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - {{ homepage_docker_network }}
+    deploy:
+      resources:
+        limits:
+          memory: {{ homepage_proxy_memory_limit }}
+
+  {{ homepage_service_name }}:
+    image: "{{ homepage_image }}:{{ homepage_image_tag }}"
+    container_name: "{{ homepage_container_name }}"
+    restart: "{{ homepage_restart_policy }}"
+
+    deploy:
+      resources:
+        limits:
+          memory: {{ homepage_memory_limit }}
+
+    environment:
+      PUID: "{{ homepage_puid }}"
+      PGID: "{{ homepage_pgid }}"
+      TZ: "{{ homepage_timezone }}"
+      # Connect via TCP to proxy instead of mounting socket directly
+      DOCKER_HOST: tcp://docker-proxy:2375
+      # FIX: Allow our domain
+      HOMEPAGE_ALLOWED_HOSTS: "{{ homepage_domain }},127.0.0.1,localhost"
+
+    volumes:
+      - "{{ homepage_config_dir }}:/app/config"
+      # Socket is NOT mounted here for security reasons
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: {{ homepage_hc_interval }}
+      timeout: {{ homepage_hc_timeout }}
+      retries: {{ homepage_hc_retries }}
+      start_period: 10s
+
+    labels:
+      caddy: "{{ homepage_domain }}"
+      caddy.import: "secure-headers"
+      
+      # Auth via TinyAuth (Middleware)
+      caddy.route: ""
+      caddy.route.0_forward_auth: "tinyauth:3000"
+      caddy.route.0_forward_auth.uri: "/api/auth/caddy"
+      caddy.route.0_forward_auth.copy_headers: "X-User X-Email X-Groups Remote-User Remote-Email"
+      
+      caddy.route.1_reverse_proxy: "{{ homepage_service_name }}:{{ homepage_port }}"
+
+    networks:
+      - {{ homepage_docker_network }}
+
+networks:
+  {{ homepage_docker_network }}:
+    external: true

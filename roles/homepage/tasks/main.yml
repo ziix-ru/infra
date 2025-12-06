@@ -1,0 +1,28 @@
+---
+- name: Deploy Homepage
+  ansible.builtin.include_role:
+    name: utils
+    tasks_from: docker_service
+  vars:
+    utils_docker_service_name: "{{ homepage_service_name }}"
+    utils_docker_service_dir: "{{ homepage_compose_dir }}"
+
+    # Absolute path to template
+    utils_docker_service_compose_template: "{{ playbook_dir }}/roles/homepage/templates/docker-compose.yml.j2"
+
+    # Ensure config dirs exist
+    utils_docker_service_data_dirs:
+      - "{{ homepage_config_dir }}"
+      - "{{ homepage_images_dir }}"
+      - "{{ homepage_icons_dir }}"
+
+    # Deploy config files
+    utils_docker_service_templates:
+      - src: docker.yaml.j2
+        dest: "{{ homepage_config_dir }}/docker.yaml"
+      - src: settings.yaml.j2
+        dest: "{{ homepage_config_dir }}/settings.yaml"
+      - src: services.yaml.j2
+        dest: "{{ homepage_config_dir }}/services.yaml"
+      - src: widgets.yaml.j2
+        dest: "{{ homepage_config_dir }}/widgets.yaml"

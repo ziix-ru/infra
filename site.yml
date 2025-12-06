@@ -37,3 +37,6 @@
 
     - role: vaultwarden
       tags: vaultwarden
+
+    - role: homepage
+      tags: homepage

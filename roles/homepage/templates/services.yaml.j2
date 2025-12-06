@@ -1,0 +1,62 @@
+---
+- Infrastructure:
+    - PocketID:
+        icon: pocket-id.png
+        href: "https://auth.{{ base_domain }}"
+        description: "Identity Provider"
+        server: local
+        container: pocketid
+        widget:
+            type: pocketid
+            url: "http://pocketid:1411"
+
+    - LLDAP:
+        icon: lldap.png
+        href: "https://ldap.{{ base_domain }}"
+        description: "Lightweight Directory"
+        server: local
+        container: lldap
+
+    - Vaultwarden:
+        icon: vaultwarden.png
+        href: "https://vault.{{ base_domain }}"
+        description: "Password Manager"
+        server: local
+        container: vaultwarden
+
+    - TinyAuth:
+        icon: lock.png
+        href: "https://tinyauth.{{ base_domain }}"
+        description: "Auth Middleware"
+        server: local
+        container: tinyauth
+
+- Communication:
+    - Matrix (Element):
+        icon: matrix.png
+        href: "https://{{ matrix_domain | default('matrix.' ~ base_domain) }}"
+        description: "Secure Chat"
+        server: local
+        container: tuwunel
+
+    - LiveKit:
+        icon: livekit.png
+        href: "https://livekit.{{ base_domain }}"
+        description: "Real-time Video"
+        server: local
+        container: livekit
+
+- Storage:
+    - Syncthing:
+        icon: syncthing.png
+        href: "https://syncthing.{{ base_domain }}"
+        description: "File Sync"
+        server: local
+        container: syncthing
+
+    - AmneziaWG:
+        icon: wireguard.png
+        href: "https://amnezia.{{ base_domain }}"
+        description: "VPN UI"
+        server: local
+        container: amnezia

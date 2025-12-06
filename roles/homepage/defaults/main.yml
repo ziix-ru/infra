@@ -1,0 +1,32 @@
+---
+# [ Service Identity ]
+homepage_service_name: "homepage"
+homepage_container_name: "{{ homepage_service_name }}"
+homepage_image: "ghcr.io/gethomepage/homepage"
+homepage_image_tag: "{{ docker_image_tag | default('latest') }}"
+
+# [ Paths & Directories ]
+homepage_compose_dir: "{{ docker_base_dir }}/{{ homepage_service_name }}"
+homepage_config_dir: "{{ homepage_compose_dir }}/config"
+homepage_icons_dir: "{{ homepage_config_dir }}/icons"
+homepage_images_dir: "{{ homepage_config_dir }}/images"
+
+# [ Network & Ports ]
+homepage_docker_network: "{{ docker_network_name }}"
+homepage_domain: "hub.{{ base_domain }}"
+homepage_port: 3000
+
+# [ Configuration ]
+homepage_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
+homepage_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
+homepage_puid: "{{ docker_puid | default('1000') }}"
+homepage_pgid: "{{ docker_pgid | default('1000') }}"
+
+# [ Resources ]
+homepage_memory_limit: "{{ docker_memory_limit | default('256M') }}"
+homepage_proxy_memory_limit: "64M" # Limit for socket-proxy container
+
+# [ Healthcheck Strategy ]
+homepage_hc_interval: "{{ docker_hc_interval | default('30s') }}"
+homepage_hc_timeout: "{{ docker_hc_timeout | default('5s') }}"
+homepage_hc_retries: "{{ docker_hc_retries | default(3) }}"
