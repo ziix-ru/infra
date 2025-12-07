@@ -1,0 +1,46 @@
+---
+# [ Service Identity ]
+dozzle_service_name: "dozzle"
+dozzle_container_name: "{{ dozzle_service_name }}"
+dozzle_image_name: "amir20/dozzle"
+
+# [ Paths & Directories ]
+dozzle_compose_dir: "{{ docker_base_dir }}/{{ dozzle_service_name }}"
+dozzle_config_dir: "{{ dozzle_compose_dir }}/config"
+dozzle_data_dir: "{{ dozzle_compose_dir }}/data"
+
+# [ Network & Ports ]
+dozzle_docker_network: "{{ docker_network_name }}"
+dozzle_port: 8080
+
+# [ Domain ]
+dozzle_domain: "{{ dozzle_service_name }}.{{ base_domain }}"
+
+# [ Configuration ]
+dozzle_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
+dozzle_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
+
+# [ Dozzle Features ]
+dozzle_enable_actions: false  # ⚠️ Enables stop/start/restart containers (requires socket write access)
+dozzle_enable_shell: false    # ⚠️ Enables container shell access (SECURITY RISK without socket-proxy!)
+dozzle_no_analytics: true     # Disable telemetry (recommended)
+
+# [ Resources ]
+dozzle_memory_limit: "128M"
+
+# [ Build Versions ]
+dozzle_version: "latest"
+
+# [ Authentication ]
+dozzle_auth_enabled: true
+
+# [ Security ]
+dozzle_use_socket_proxy: false  # TODO: Implement socket-proxy role later
+dozzle_docker_host: "{{ 'tcp://docker-socket-proxy:2375' if dozzle_use_socket_proxy else 'unix:///var/run/docker.sock' }}"
+
+# [ Healthcheck Strategy ]
+dozzle_hc_enabled: true
+dozzle_hc_interval: "10s"
+dozzle_hc_timeout: "5s"
+dozzle_hc_retries: 5
+dozzle_hc_start_period: "5s"

@@ -137,12 +137,12 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      
+
       # 1. Admin Token (only for Public Key)
       ADM_TOK=$(curl -s -X POST "https://{{ monitoring_domain }}/api/collections/_superusers/auth-with-password" \
         -H "Content-Type: application/json" \
         -d '{"identity":"{{ monitoring_admin_email }}","password":"{{ monitoring_admin_password }}"}' | jq -r '.token')
-        
+
       # 2. Get Public Key
       KEY_RESP=$(curl -s "https://{{ monitoring_domain }}/api/beszel/getkey" -H "Authorization: $ADM_TOK")
       PUB_KEY=$(echo "$KEY_RESP" | jq -r '.key // empty')

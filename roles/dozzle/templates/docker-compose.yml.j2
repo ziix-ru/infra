@@ -1,0 +1,77 @@
+services:
+  {{ dozzle_service_name }}:
+    image: "{{ dozzle_image_name }}:{{ dozzle_version }}"
+    container_name: "{{ dozzle_container_name }}"
+    restart: "{{ dozzle_restart_policy }}"
+    security_opt:
+      - no-new-privileges:true
+
+    deploy:
+      resources:
+        limits:
+          memory: {{ dozzle_memory_limit }}
+
+    environment:
+      TZ: "{{ dozzle_timezone }}"
+{% if dozzle_no_analytics %}
+      DOZZLE_NO_ANALYTICS: "true"
+{% endif %}
+{% if dozzle_enable_actions %}
+      DOZZLE_ENABLE_ACTIONS: "true"
+{% endif %}
+{% if dozzle_enable_shell %}
+      DOZZLE_ENABLE_SHELL: "true"
+{% endif %}
+{% if dozzle_auth_enabled %}
+      DOZZLE_AUTH_PROVIDER: "forward-proxy"
+      DOZZLE_AUTH_HEADER_USER: "Remote-User"
+      DOZZLE_AUTH_HEADER_EMAIL: "Remote-Email"
+      DOZZLE_AUTH_HEADER_NAME: "Remote-Name"
+{% endif %}
+{% if dozzle_use_socket_proxy %}
+      DOCKER_HOST: "{{ dozzle_docker_host }}"
+{% endif %}
+
+    volumes:
+{% if not dozzle_use_socket_proxy %}
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+{% endif %}
+
+    networks:
+      - {{ dozzle_docker_network }}
+
+{% if dozzle_hc_enabled %}
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: {{ dozzle_hc_interval }}
+      timeout: {{ dozzle_hc_timeout }}
+      retries: {{ dozzle_hc_retries }}
+      start_period: {{ dozzle_hc_start_period }}
+{% endif %}
+
+    labels:
+      # === CADDY CONFIGURATION ===
+      caddy: "{{ dozzle_domain }}"
+      caddy.import: "secure-headers"
+
+{% if dozzle_auth_enabled %}
+      # Auth via TinyAuth (Forward Auth)
+      # Important: 'route' ensures auth is checked BEFORE proxying
+      caddy.route: ""
+      caddy.route.0_forward_auth: "tinyauth:3000"
+      caddy.route.0_forward_auth.uri: "/api/auth/caddy"
+      caddy.route.0_forward_auth.copy_headers: "Remote-User Remote-Name Remote-Email Remote-Groups"
+
+      # Proxy to Dozzle UI
+      caddy.route.1_reverse_proxy: "{{ dozzle_service_name }}:{{ dozzle_port }}"
+{% else %}
+      # Direct proxy without auth (NOT RECOMMENDED FOR PRODUCTION)
+      caddy.reverse_proxy: "{{ dozzle_service_name }}:{{ dozzle_port }}"
+{% endif %}
+
+      # === AUTOHEAL ===
+      autoheal: "true"
+
+networks:
+  {{ dozzle_docker_network }}:
+    external: true

@@ -41,5 +41,5 @@
     - role: monitoring
       tags: monitoring
 
-    - role: homepage
-      tags: homepage
+    - role: dozzle
+      tags: dozzle

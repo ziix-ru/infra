@@ -15,8 +15,10 @@ services:
       APP_URL: "https://{{ monitoring_domain }}"
 
       # --- [ Auto-Setup Admin ] ---
+      # Beszel will create this user on first run if the database is empty
       USER_EMAIL: "{{ monitoring_admin_email }}"
       USER_PASSWORD: "{{ monitoring_admin_password }}"
+      # Allow creating users via OIDC
       USER_CREATION: "true"
 
     volumes:
@@ -24,8 +26,8 @@ services:
 
     networks:
       - {{ monitoring_network }}
-    
-    # Полезно для отладки или если используешь http://host.docker.internal
+
+    # Useful for debugging or if using http://host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -46,7 +48,7 @@ services:
     image: "{{ monitoring_agent_image }}:{{ monitoring_agent_tag }}"
     container_name: "{{ monitoring_agent_container }}"
     restart: "{{ monitoring_restart_policy }}"
-    # Active Mode + Host Network = Best Monitoring
+    # Active Mode + Host Network = Best Monitoring capabilities
     network_mode: host
 
     deploy:
@@ -55,16 +57,17 @@ services:
           memory: {{ monitoring_agent_memory }}
 
     environment:
-      # Ключ (динамический или из Vault)
+      # Agent Key (Dynamic from API or fallback to Vault)
       KEY: "{{ monitoring_dynamic_key | default(monitoring_agent_key) }}"
-      
-      # Active Mode: URL Хаба + Токен
-      # Используем внешний домен (требует NAT Loopback/Hairpinning или открытого фаервола)
+
+      # Active Mode: Hub URL + Token
+      # Uses external domain (requires NAT Loopback/Hairpinning or open firewall)
       HUB_URL: "https://{{ monitoring_domain }}"
-      
-      # Токен (User-Scoped, полученный через API)
+
+      # Token (User-Scoped, retrieved via API)
       TOKEN: "{{ monitoring_dynamic_token | default('') }}"
-      
+
+      # Mount point for root filesystem monitoring
       FILESYSTEM: "/extra-filesystems/root"
 
     volumes:
