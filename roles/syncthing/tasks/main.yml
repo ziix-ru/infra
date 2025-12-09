@@ -18,6 +18,17 @@
     owner: "{{ deploy_user }}"
     group: docker
 
+- name: Allow Syncthing ports (UFW)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop:
+    - { port: "22000", proto: "tcp", comment: "Syncthing Transfer TCP" }
+    - { port: "22000", proto: "udp", comment: "Syncthing Transfer UDP" }
+    - { port: "21027", proto: "udp", comment: "Syncthing Discovery" }
+
 - name: Deploy Syncthing Stack
   community.docker.docker_compose_v2:
     project_src: "{{ syncthing_compose_dir }}"

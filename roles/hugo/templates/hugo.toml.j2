@@ -1,8 +1,8 @@
 baseURL = "{{ hugo_base_url }}"
 title = "{{ hugo_title }}"
 theme = "{{ hugo_theme }}"
-languageCode = "en-us"
-defaultContentLanguage = "en"
+languageCode = "ru-ru" # Поменял на RU, раз блог русский
+defaultContentLanguage = "ru"
 
 publishDir = "/dest"
 canonifyURLs = false
@@ -14,6 +14,7 @@ enableGitInfo = true
   pagerSize = 10
 
 [outputs]
+  # JSON нужен для поиска (Fuse.js)
   home = ["HTML", "RSS", "JSON"]
 
 [sitemap]
@@ -42,26 +43,39 @@ enableGitInfo = true
 
 [menu]
   [[menu.main]]
-    name = "Home"
+    name = "Главная"
     url = "/"
     weight = 1
 
   [[menu.main]]
-    name = "Posts"
+    name = "Посты"
     url = "/posts/"
     weight = 2
 
   [[menu.main]]
-    name = "Tags"
+    name = "Теги"
     url = "/tags/"
     weight = 3
+    
+  # Если создашь страницу archives.md, раскомментируй
+  # [[menu.main]]
+  #   name = "Архив"
+  #   url = "/archives/"
+  #   weight = 4
+  
+  # Если создашь страницу search.md, раскомментируй (или поиск будет по иконке)
+  # [[menu.main]]
+  #   name = "Поиск"
+  #   url = "/search/"
+  #   weight = 5
 
 [params]
   description = "{{ hugo_description }}"
   author = "{{ hugo_author }}"
-  dateFormat = "January 2, 2006"
-  
-  # PaperMod settings
+  dateFormat = "02.01.2006" # Формат даты более привычный для РФ
+  defaultTheme = "auto" # Авто-тема (темная/светлая) как в системе
+
+  # --- PaperMod UX settings ---
   ShowReadingTime = true
   ShowShareButtons = true
   ShowPostNavLinks = true
@@ -69,18 +83,46 @@ enableGitInfo = true
   ShowCodeCopyButtons = true
   ShowWordCount = true
   ShowRssButtonInSectionTermList = true
-  UseHugoToc = true
+  
+  # --- Оглавление (ToC) ---
+  ShowToc = true
+  TocOpen = true
+  
+  # --- Поиск (Search) ---
+  ShowSearch = true
+
+  # --- Кнопка "Редактировать на GitHub" ---
+  # Убедись, что путь '/content' верный. Если файлы лежат в корне, убери '/content'
+  editPost = { URL = "https://github.com/ziix-ru/blog/edit/main/content", Text = "Редактировать на GitHub", appendFilePath = true }
+
   disableSpecial1stPost = false
   disableScrollToTop = false
-  comments = false
   hidemeta = false
   hideSummary = false
-  showtoc = true
-  tocopen = false
+  
+  # --- Комментарии (Включаем глобально) ---
+  comments = true
 
   [params.homeInfoParams]
-    Title = "Welcome to {{ hugo_title }}"
+    Title = "Добро пожаловать в {{ hugo_title }}"
     Content = "{{ hugo_description }}"
+
+  # --- Конфиг Giscus ---
+  [params.comments]
+    provider = "giscus"
+
+    [params.comments.giscus]
+      repo = "ziix-ru/blog"
+      repoId = "R_kgDOQkPaEw"
+      category = "General"
+      categoryId = "DIC_kwDOQkPaE84Czj8a"
+      mapping = "pathname"
+      reactionsEnabled = "1"
+      emitMetadata = "0"
+      inputPosition = "bottom"
+      theme = "preferred_color_scheme"
+      lang = "ru"
+      loading = "lazy"
 
 {% if hugo_social_github %}
   [[params.socialIcons]]

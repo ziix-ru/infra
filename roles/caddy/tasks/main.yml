@@ -32,6 +32,16 @@
     group: docker
   register: caddy_compose
 
+- name: Allow HTTP/HTTPS ports (UFW)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: "Caddy Web Server"
+  loop:
+    - "80"
+    - "443"
+
 - name: Build Caddy Image
   community.docker.docker_image:
     name: "{{ caddy_service_name }}:local"
@@ -39,14 +49,12 @@
     build:
       path: "{{ caddy_compose_dir }}"
       pull: true
-    # Пересобираем, если изменился Dockerfile
     force_source: "{{ caddy_configs.changed }}"
 
 - name: Deploy Caddy Stack
   community.docker.docker_compose_v2:
     project_src: "{{ caddy_compose_dir }}"
     state: present
-    # Pull не нужен, так как образ локальный
     pull: never
     remove_orphans: true
   become: true

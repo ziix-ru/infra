@@ -5,7 +5,6 @@
     user: "{{ deploy_user }}"
     state: present
     key: "{{ item }}"
-  # FIX: Убрал пробелы внутри [ ... ]
   loop: "{{ [lookup('file', lookup('env', 'HOME') + '/.ssh/id_ed25519.pub')] + (vault_ssh_keys.additional_keys | default([])) }}"
 
 # --- 2. Firewall (UFW) ---
@@ -15,29 +14,15 @@
     name: OpenSSH
     comment: 'SSH rate limited'
 
-- name: Allow required ports through UFW
+- name: Allow system utility ports (iperf3)
   community.general.ufw:
     rule: allow
     port: "{{ item.port }}"
     proto: "{{ item.proto }}"
     comment: "{{ item.comment }}"
   loop:
-    # Web
-    - { port: "80", proto: "tcp", comment: "HTTP (LetsEncrypt)" }
-    - { port: "443", proto: "tcp", comment: "HTTPS" }
-    # VPN
-    - { port: "51820", proto: "udp", comment: "AmneziaWG UDP" }
-    # Utils
     - { port: "5201", proto: "tcp", comment: "iperf3 TCP" }
     - { port: "5201", proto: "udp", comment: "iperf3 UDP" }
-    # Syncthing
-    - { port: "22000", proto: "tcp", comment: "Syncthing TCP" }
-    - { port: "22000", proto: "udp", comment: "Syncthing UDP" }
-    - { port: "21027", proto: "udp", comment: "Syncthing Discovery" }
-    # TURN Server (Eturnal)
-    - { port: "3478", proto: "udp", comment: "TURN Signaling UDP" }
-    - { port: "3478", proto: "tcp", comment: "TURN Signaling TCP" }
-    - { port: "49152:49200", proto: "udp", comment: "TURN Relay Media" }
 
 - name: Enable UFW with default deny
   community.general.ufw:

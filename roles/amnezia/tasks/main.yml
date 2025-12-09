@@ -29,6 +29,13 @@
     group: docker
   notify: Restart Amnezia
 
+- name: Allow AmneziaWG UDP port (UFW)
+  community.general.ufw:
+    rule: allow
+    port: "{{ amnezia_port_vpn | default('51820') }}"
+    proto: udp
+    comment: "AmneziaWG VPN"
+
 - name: Deploy AmneziaWG Stack
   community.docker.docker_compose_v2:
     project_src: "{{ amnezia_compose_dir }}"
