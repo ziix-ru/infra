@@ -5,9 +5,8 @@ filenames:
 labels:
   type: syslog
 ---
-# Caddy (читаем через Docker API)
-source: docker
-container_name:
- - caddy
+# Caddy (читаем из файла)
+filenames:
+  - /var/log/caddy/access.log
 labels:
   type: caddy

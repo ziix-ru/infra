@@ -18,7 +18,6 @@ services:
 
     networks:
       - {{ tuwunel_docker_network }}
-      - livekit_internal
 
     environment:
       - TUWUNEL_CONFIG=/etc/tuwunel/tuwunel.toml
@@ -100,7 +99,6 @@ services:
 
     networks:
       - {{ tuwunel_docker_network }}
-      - livekit_internal
 
     ports:
       - "{{ tuwunel_livekit_http_port }}:{{ tuwunel_livekit_http_port }}"
@@ -157,10 +155,7 @@ services:
 
     networks:
       - {{ tuwunel_docker_network }}
-      - livekit_internal
 
 networks:
   {{ tuwunel_docker_network }}:
     external: true
-  livekit_internal:
-    driver: bridge

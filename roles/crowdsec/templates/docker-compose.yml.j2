@@ -11,34 +11,26 @@ services:
     environment:
       GID: "1000"
       COLLECTIONS: "{{ crowdsec_collections | join(' ') }}"
-      
-      # Socket Proxy Config
-{% if crowdsec_use_socket_proxy %}
-      DOCKER_HOST: "tcp://socket-proxy:2375"
-{% endif %}
+
     volumes:
       - ./acquis.yaml:/etc/crowdsec/acquis.yaml
       - ./config:/etc/crowdsec
       - ./data:/var/lib/crowdsec/data
-      # Системные логи (SSH) читаем файлами (RO)
+      # Системные логи (SSH)
       - /var/log/auth.log:/var/log/auth.log:ro
       - /var/log/syslog:/var/log/syslog:ro
-{% if not crowdsec_use_socket_proxy %}
-      # Если прокси нет, читаем Docker сокет напрямую
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-{% endif %}
+      # Логи Caddy (читаем из папки Caddy)
+      - {{ docker_base_dir }}/caddy/logs:/var/log/caddy:ro
+
     ports:
       # Открываем LAPI на localhost:8080 для хостового баунсера
       - "127.0.0.1:8080:8080"
     networks:
       - {{ docker_network_name }}
-{% if crowdsec_use_socket_proxy %}
-      - socket_proxy
-{% endif %}
+
     security_opt:
       - no-new-privileges=true
-    
+
     healthcheck:
       test: ["CMD", "cscli", "metrics"]
       interval: {{ crowdsec_hc_interval }}
@@ -52,7 +44,3 @@ services:
 networks:
   {{ docker_network_name }}:
     external: true
-{% if crowdsec_use_socket_proxy %}
-  socket_proxy:
-    external: true
-{% endif %}

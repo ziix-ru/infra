@@ -51,13 +51,12 @@
     mode: '0644'
   tags: [crowdsec, system]
 
-- name: Add CrowdSec Repository
+- name: Add CrowdSec Repository (Force Bookworm)
   ansible.builtin.apt_repository:
-    # Разбиваем длинную строку на несколько для читаемости и линтера
     repo: >-
       deb [signed-by=/usr/share/keyrings/crowdsec_crowdsec-archive-keyring.asc]
       https://packagecloud.io/crowdsec/crowdsec/debian/
-      {{ ansible_distribution_release }} main
+      bookworm main
     state: present
     filename: crowdsec_crowdsec
   tags: [crowdsec, system]

@@ -4,7 +4,7 @@ services:
     container_name: "{{ socket_proxy_container_name }}"
     restart: unless-stopped
 
-    # nobody (65534) + GID группы docker хоста (безопасно, non-root)
+    # nobody (65534) + GID группы docker хоста
     user: "65534:{{ socket_proxy_docker_gid }}"
 
     read_only: true
@@ -37,7 +37,10 @@ services:
 {% endif %}
 
     networks:
-      - {{ socket_proxy_network }}
+      # Подключаемся к сети socket_proxy
+      socket_proxy:
+        aliases:
+          - socket-proxy # Чтобы клиенты находили его по этому имени
 
     healthcheck:
       test: ["CMD", "./healthcheck"]
@@ -46,5 +49,6 @@ services:
       retries: 3
 
 networks:
-  {{ socket_proxy_network }}:
-    external: true
+  socket_proxy:
+    name: socket_proxy # Явное имя сети
+    internal: true     # Полная изоляция от интернета

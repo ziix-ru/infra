@@ -1,23 +1,26 @@
 {
-    # Email для Let's Encrypt (обязательно)
     email {{ caddy_acme_email }}
 
+{% if caddy_enable_access_logs | bool %}
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MiB
+            roll_keep 5
+        }
+        format json
+    }
+{% endif %}
+
 {% if caddy_use_cloudflare_dns | bool %}
-    # === DNS Challenge (Cloudflare) ===
-    # Глобально включаем валидацию через DNS
     acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN} {
-        # Используем Cloudflare DNS для проверки TXT записей (обход кэша провайдера)
         resolvers 1.1.1.1
     }
 {% endif %}
 
 {% if caddy_sablier_enabled | bool %}
-    # === Sablier Configuration ===
     order sablier before reverse_proxy
 {% endif %}
 
-    # === Server Tuning ===
-    # Включаем HTTP/3 и настраиваем порядок лисенеров
     servers :443 {
         protocols h1 h2 h3
         listener_wrappers {

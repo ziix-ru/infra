@@ -3,24 +3,24 @@ services:
     image: "{{ sablier_image }}:{{ sablier_version }}"
     container_name: "{{ sablier_service_name }}"
     restart: unless-stopped
-    
+
     deploy:
       resources:
         limits:
           memory: {{ sablier_memory_limit }}
 
     environment:
-      # Подключаемся к Docker через безопасный прокси
+      # Указываем адрес прокси (определен в defaults)
       DOCKER_HOST: "{{ sablier_docker_host }}"
-      # Логирование
       LOGGING_LEVEL: "info"
 
-    command: 
-      - start 
+    command:
+      - start
       - --provider.name=docker
 
     networks:
-      - {{ sablier_network }}
+      - {{ sablier_network }} # web (если нужен доступ к API сабли извне)
+      - socket_proxy          # <--- ДОБАВЛЕНО: Доступ к управлению Docker
 
     healthcheck:
       test: ["CMD", "sablier", "health"]
@@ -30,4 +30,6 @@ services:
 
 networks:
   {{ sablier_network }}:
+    external: true
+  socket_proxy:               # <--- ДОБАВЛЕНО: Объявление внешней сети
     external: true

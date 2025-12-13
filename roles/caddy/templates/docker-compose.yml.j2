@@ -36,12 +36,17 @@ services:
 {% endif %}
       - "{{ caddy_data_dir }}:/data"
       - "{{ caddy_config_dir }}:/config"
+{% if caddy_enable_access_logs | bool %}
+      - "{{ caddy_logs_dir }}:/var/log/caddy"
+{% endif %}
 
     networks:
       - {{ caddy_docker_network }}
+{% if caddy_use_socket_proxy %}
+      - socket_proxy
+{% endif %}
 
     labels:
-      # Security headers snippet
       caddy_0: "(secure-headers)"
       caddy_0.header.Strict-Transport-Security: "\"max-age=31536000; includeSubDomains\""
       caddy_0.header.X-Content-Type-Options: "nosniff"
@@ -60,3 +65,7 @@ services:
 networks:
   {{ caddy_docker_network }}:
     external: true
+{% if caddy_use_socket_proxy %}
+  socket_proxy:
+    external: true
+{% endif %}

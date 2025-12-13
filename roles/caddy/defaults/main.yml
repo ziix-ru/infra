@@ -7,6 +7,7 @@ caddy_container_name: "{{ caddy_service_name }}"
 caddy_compose_dir: "{{ docker_base_dir }}/{{ caddy_service_name }}"
 caddy_config_dir: "{{ caddy_compose_dir }}/config"
 caddy_data_dir: "{{ caddy_compose_dir }}/data"
+caddy_logs_dir: "{{ caddy_compose_dir }}/logs" # <--- Новая переменная
 
 # [ Network & Ports ]
 caddy_docker_network: "{{ docker_network_name }}"
@@ -19,19 +20,19 @@ caddy_acme_email: "{{ admin_email | default('admin@example.com') }}"
 caddy_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
 caddy_timezone: "{{ docker_timezone | default('UTC') }}"
 
+# [ Logging ]
+caddy_enable_access_logs: true # <--- Включает запись JSON логов в файл
+
 # [ Resources ]
 caddy_memory_limit: "{{ docker_memory_limit | default('256M') }}"
 
 # [ Build Versions ]
-# Используем builder-alpine (сейчас содержит Go 1.23, что достаточно для плагинов ниже)
 caddy_builder_image: "caddy:builder-alpine"
 caddy_final_image_base: "caddy:alpine"
-
-# Версии плагинов
 caddy_docker_proxy_version: "v2.10.0"
 caddy_sablier_plugin_version: "v1.0.1"
 
-# [ Healthcheck Strategy ]
+# [ Healthcheck ]
 caddy_hc_enabled: true
 caddy_hc_interval: "{{ docker_hc_interval | default('30s') }}"
 caddy_hc_timeout: "{{ docker_hc_timeout | default('5s') }}"
@@ -42,14 +43,14 @@ caddy_hc_start_period: "{{ docker_hc_start_period | default('10s') }}"
 caddy_use_cloudflare_dns: "{{ use_cloudflare_dns | default(false) }}"
 caddy_cloudflare_token: "{{ vault_caddy.cloudflare_token | default('') }}"
 
-# [ Socket Proxy Integration ]
+# [ Socket Proxy ]
 caddy_use_socket_proxy: "{{ use_socket_proxy | default(false) }}"
 caddy_docker_host: >-
   {{ 'tcp://socket-proxy:2375'
      if caddy_use_socket_proxy
      else 'unix:///var/run/docker.sock' }}
 
-# [ Sablier Integration ]
+# [ Sablier ]
 caddy_sablier_enabled: "{{ use_sablier | default(false) }}"
 caddy_sablier_docker_url: >-
   {{ 'http://socket-proxy:2375'

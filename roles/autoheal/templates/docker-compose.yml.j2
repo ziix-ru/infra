@@ -14,21 +14,25 @@ services:
       AUTOHEAL_INTERVAL: "{{ autoheal_interval }}"
       AUTOHEAL_START_PERIOD: "{{ autoheal_start_period }}"
       AUTOHEAL_DEFAULT_STOP_TIMEOUT: "{{ autoheal_stop_timeout }}"
-      # Важнейшая настройка для Sablier
       AUTOHEAL_ONLY_MONITOR_RUNNING: "{{ autoheal_only_monitor_running }}"
       TZ: "{{ autoheal_timezone }}"
+      # Если используется прокси, указываем адрес
 {% if autoheal_use_socket_proxy %}
       DOCKER_SOCK: "{{ autoheal_docker_host }}"
 {% endif %}
 
     volumes:
 {% if not autoheal_use_socket_proxy %}
+      # Если прокси нет, маунтим сокет напрямую
       - /var/run/docker.sock:/var/run/docker.sock
 {% endif %}
       - /etc/localtime:/etc/localtime:ro
 
     networks:
-      - {{ autoheal_docker_network }}
+      - {{ autoheal_docker_network }} # web
+{% if autoheal_use_socket_proxy %}
+      - socket_proxy                  # <--- ВАЖНО: Доступ к сети прокси
+{% endif %}
 
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f autoheal || exit 1"]
@@ -40,3 +44,7 @@ services:
 networks:
   {{ autoheal_docker_network }}:
     external: true
+{% if autoheal_use_socket_proxy %}
+  socket_proxy:                       # <--- Объявляем сеть
+    external: true
+{% endif %}

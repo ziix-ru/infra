@@ -4,10 +4,10 @@ crowdsec_base_dir: "{{ docker_base_dir }}/{{ crowdsec_service_name }}"
 
 # Коллекции защиты
 crowdsec_collections:
-  - crowdsec/linux
-  - crowdsec/sshd
-  - crowdsec/caddy
-  - crowdsec/http-cve
+  - crowdsecurity/linux
+  - crowdsecurity/sshd
+  - crowdsecurity/caddy
+  - crowdsecurity/http-cve
 
 # Белые списки (чтобы не забанить себя)
 crowdsec_whitelists:
@@ -16,9 +16,6 @@ crowdsec_whitelists:
 
 # Ресурсы агента
 crowdsec_memory_limit: "{{ docker_memory_limit | default('512M') }}"
-
-# Socket Proxy (интеграция)
-crowdsec_use_socket_proxy: "{{ use_socket_proxy | default(false) }}"
 
 # Healthcheck
 crowdsec_hc_interval: "60s"

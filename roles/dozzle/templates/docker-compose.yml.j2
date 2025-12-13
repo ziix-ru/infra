@@ -40,7 +40,10 @@ services:
 {% endif %}
 
     networks:
-      - {{ dozzle_docker_network }}
+      - {{ dozzle_docker_network }} # web (для доступа к UI)
+{% if dozzle_use_socket_proxy %}
+      - socket_proxy                # <--- ВАЖНО: Доступ к сети прокси для чтения логов
+{% endif %}
 
 {% if dozzle_hc_enabled %}
     healthcheck:
@@ -87,3 +90,7 @@ services:
 networks:
   {{ dozzle_docker_network }}:
     external: true
+{% if dozzle_use_socket_proxy %}
+  socket_proxy:                     # <--- Объявляем сеть
+    external: true
+{% endif %}

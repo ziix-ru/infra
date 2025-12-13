@@ -10,9 +10,6 @@ socket_proxy_tag: "1"
 # [ Paths ]
 socket_proxy_compose_dir: "{{ docker_base_dir }}/{{ socket_proxy_service_name }}"
 
-# [ Network ]
-socket_proxy_network: "{{ docker_network_name }}"
-
 # [ Access Control ]
 socket_proxy_allow_from: "0.0.0.0/0"
 
