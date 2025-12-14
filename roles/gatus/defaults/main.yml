@@ -1,0 +1,40 @@
+---
+# [ Service Identity ]
+gatus_service_name: "gatus"
+gatus_container_name: "{{ gatus_service_name }}"
+gatus_image_name: "twinproduction/gatus"
+gatus_version: "v5.16.0"
+
+# [ Paths & Directories ]
+gatus_base_dir: "{{ docker_base_dir }}/{{ gatus_service_name }}"
+gatus_config_dir: "{{ gatus_base_dir }}/config"
+gatus_data_dir: "{{ gatus_base_dir }}/data"
+
+# [ Network & Ports ]
+gatus_docker_network: "{{ docker_network_name }}"
+gatus_port: 8080
+
+# [ Domain & Ingress ]
+gatus_domain: "status.{{ base_domain }}"
+gatus_ingress_provider: "caddy"
+
+# [ Configuration ]
+gatus_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
+gatus_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
+gatus_memory_limit: "64M"
+
+# [ UI Customization ]
+gatus_title: "Status | {{ base_domain }}"
+gatus_header: "System Status"
+gatus_description: "Live service monitoring for {{ base_domain }}"
+
+# [ Alerting ]
+gatus_telegram_token: "{{ vault_telegram.bot_token | default('') }}"
+gatus_telegram_chat_id: "{{ vault_telegram.chat_id | default('') }}"
+
+gatus_alert_failure_threshold: 3   # Попыток перед алертом
+gatus_alert_success_threshold: 3   # Попыток перед "Resolved"
+gatus_alert_send_on_resolved: true # Уведомлять о починке
+
+# [ Integrations ]
+gatus_enable_autoheal: "{{ use_autoheal | default(true) }}"

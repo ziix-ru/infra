@@ -62,6 +62,7 @@ homer_enabled: true    # Dashboard (Homer)
 dozzle_enabled: true      # Logs Viewer
 beszel_enabled: true      # Lightweight Monitoring
 watchtower_enabled: true
+gatus_enabled: true
 
 # --- Applications ---
 vaultwarden_enabled: true # Password Manager

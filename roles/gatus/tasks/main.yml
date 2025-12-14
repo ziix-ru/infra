@@ -1,0 +1,52 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - base_domain is defined
+      - docker_base_dir is defined
+      - gatus_docker_network is defined
+      - deploy_user is defined
+    fail_msg: "CRITICAL: Required variables are missing for Gatus role!"
+  tags: [gatus, check]
+
+- name: Ensure Gatus directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+  loop:
+    - "{{ gatus_base_dir }}"
+    - "{{ gatus_config_dir }}"
+    - "{{ gatus_data_dir }}"
+  tags: [gatus, filesystem]
+
+- name: Render config.yaml
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ gatus_config_dir }}/config.yaml"
+    mode: "0644"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+  notify: Restart Gatus
+  tags: [gatus, config]
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ gatus_base_dir }}/docker-compose.yml"
+    mode: "0640"
+    owner: "{{ deploy_user }}"
+    group: docker
+  tags: [gatus, config]
+
+- name: Deploy Gatus Stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ gatus_base_dir }}"
+    state: present
+    pull: "{{ 'always' if gatus_version == 'latest' else 'missing' }}"
+    remove_orphans: true
+  become: true
+  become_user: "{{ deploy_user }}"
+  tags: [gatus, deploy]

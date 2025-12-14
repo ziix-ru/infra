@@ -1,0 +1,131 @@
+ui:
+  title: "{{ gatus_title }}"
+  header: "{{ gatus_header }}"
+  description: "{{ gatus_description }}"
+  # Сортировка по умолчанию. Т.к. мы используем цифры в группах, они встанут как надо.
+  default-sort-by: group 
+
+# ... (Alerting и Storage без изменений) ...
+
+endpoints:
+  # ----------------------------------------------------------------------------
+  # 1. 🌐 Public & Network (Лицо проекта + Интернет)
+  # ----------------------------------------------------------------------------
+  - name: "Main Website"
+    group: "1. 🌐 Public Access"
+    url: "https://{{ base_domain }}"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 72h"
+
+  - name: "Internet Connectivity"
+    group: "1. 🌐 Public Access"
+    url: "icmp://8.8.8.8"
+    interval: 5m
+    conditions:
+      - "[CONNECTED] == true"
+
+  # ----------------------------------------------------------------------------
+  # 2. 🔐 Security & Identity (Фундамент)
+  # ----------------------------------------------------------------------------
+  - name: "CrowdSec (IPS)"
+    group: "2. 🔐 Security & Auth"
+    url: "tcp://crowdsec:8080"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+
+  - name: "PocketID (OIDC)"
+    group: "2. 🔐 Security & Auth"
+    url: "http://pocketid:1411/health"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: "LLDAP (Directory)"
+    group: "2. 🔐 Security & Auth"
+    url: "http://lldap:17170"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: "TinyAuth (SSO)"
+    group: "2. 🔐 Security & Auth"
+    url: "tcp://tinyauth:3000"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+
+  # ----------------------------------------------------------------------------
+  # 3. ⚙️ Management (Управление)
+  # ----------------------------------------------------------------------------
+  - name: "Homer (Dashboard)"
+    group: "3. ⚙️ Management"
+    url: "http://homer:8080"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: "Sablier (Sleep Manager)"
+    group: "3. ⚙️ Management"
+    url: "http://sablier:10000/health"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: "Beszel (Monitoring)"
+    group: "3. ⚙️ Management"
+    url: "tcp://beszel-hub:8090"
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+
+  # ----------------------------------------------------------------------------
+  # 4. 📦 Apps & Services (Приложения)
+  # ----------------------------------------------------------------------------
+  - name: "Vaultwarden"
+    group: "4. 📦 Applications"
+    url: "http://vaultwarden:80/alive"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: "Syncthing"
+    group: "4. 📦 Applications"
+    url: "tcp://syncthing:8384"
+    interval: 2m
+    conditions:
+      - "[CONNECTED] == true"
+
+  - name: "Hugo Blog (Internal)"
+    group: "4. 📦 Applications"
+    url: "http://hugo:80"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+  
+  - name: "Amnezia VPN UI"
+    group: "4. 📦 Applications"
+    url: "tcp://amnezia:80"
+    interval: 2m
+    conditions:
+      - "[CONNECTED] == true"
+
+  # ----------------------------------------------------------------------------
+  # 5. 💬 Communication (Общение)
+  # ----------------------------------------------------------------------------
+  - name: "Matrix (Dendrite)"
+    group: "5. 💬 Communication"
+    url: "http://tuwunel:8008/_matrix/client/versions"
+    interval: 2m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].versions == pat(*r0*)"
+
+  - name: "LiveKit (RTC)"
+    group: "5. 💬 Communication"
+    url: "tcp://livekit:7880"
+    interval: 2m
+    conditions:
+      - "[CONNECTED] == true"

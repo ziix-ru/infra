@@ -1,0 +1,41 @@
+services:
+  {{ gatus_service_name }}:
+    image: "{{ gatus_image_name }}:{{ gatus_version }}"
+    container_name: "{{ gatus_container_name }}"
+    restart: "{{ gatus_restart_policy }}"
+    security_opt:
+      - no-new-privileges:true
+
+    deploy:
+      resources:
+        limits:
+          memory: {{ gatus_memory_limit }}
+
+    environment:
+      TZ: "{{ gatus_timezone }}"
+
+    volumes:
+      - ./config/config.yaml:/config/config.yaml:ro
+      - ./data:/data
+
+    # Чтобы Gatus мог видеть сервисы на хосте (например, Beszel Agent)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    networks:
+      - {{ gatus_docker_network }}
+
+    labels:
+{% if gatus_ingress_provider == 'caddy' %}
+      caddy: "{{ gatus_domain }}"
+      caddy.import: "secure-headers"
+      caddy.reverse_proxy: "{{ gatus_service_name }}:{{ gatus_port }}"
+{% endif %}
+
+{% if gatus_enable_autoheal | bool %}
+      autoheal: "true"
+{% endif %}
+
+networks:
+  {{ gatus_docker_network }}:
+    external: true

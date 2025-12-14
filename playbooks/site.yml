@@ -1,92 +1,33 @@
 ---
-- name: Configure VPS with base packages, Docker, Caddy and services
+- name: Configure VPS
   hosts: prod_node
   become: true
 
   roles:
-    # ==========================================================================
-    # LAYER 1: FOUNDATION (Always Required)
-    # ==========================================================================
-    - role: ziix.infra.common
-      tags: common
+    # [SYSTEM]
+    - { role: ziix.infra.common, tags: common }
+    - { role: ziix.infra.docker, tags: docker }
 
-    - role: ziix.infra.docker
-      tags: docker
+    # [NETWORK]
+    - { role: ziix.infra.socket_proxy, tags: socket_proxy, when: use_socket_proxy | default(false) }
+    - { role: ziix.infra.identity, tags: identity, when: identity_enabled | default(true) }
+    - { role: ziix.infra.sablier, tags: sablier, when: use_sablier | default(false) }
+    - { role: ziix.infra.caddy, tags: caddy, when: caddy_enabled | default(true) }
+    - { role: ziix.infra.crowdsec, tags: crowdsec, when: crowdsec_enabled | default(true) }
 
-    # ==========================================================================
-    # LAYER 2: SECURITY & INGRESS
-    # ==========================================================================
-    - role: ziix.infra.socket_proxy
-      when: use_socket_proxy | default(false)
-      tags: socket_proxy
+    # [OPERATIONS]
+    - { role: ziix.infra.autoheal, tags: autoheal, when: use_autoheal | default(true) }
+    - { role: ziix.infra.watchtower, tags: watchtower, when: watchtower_enabled | default(false) }
+    - { role: ziix.infra.gatus, tags: gatus, when: gatus_enabled | default(false) }
+    - { role: ziix.infra.dozzle, tags: dozzle, when: dozzle_enabled | default(false) }
+    - { role: ziix.infra.beszel, tags: beszel, when: beszel_enabled | default(false) }
 
-    - role: ziix.infra.caddy
-      when: caddy_enabled | default(true)
-      tags: caddy
+    # [APPLICATIONS]
+    - { role: ziix.infra.homer, tags: homer, when: homer_enabled | default(false) }
+    - { role: ziix.infra.vaultwarden, tags: vaultwarden, when: vaultwarden_enabled | default(false) }
+    - { role: ziix.infra.hugo, tags: hugo, when: hugo_enabled | default(false) }
+    - { role: ziix.infra.syncthing, tags: syncthing, when: syncthing_enabled | default(false) }
+    - { role: ziix.infra.tuwunel, tags: tuwunel, when: tuwunel_enabled | default(false) }
 
-    - role: ziix.infra.crowdsec
-      when: crowdsec_enabled | default(true)
-      tags: crowdsec
-
-    # ==========================================================================
-    # LAYER 3: IDENTITY & AUTH
-    # ==========================================================================
-    - role: ziix.infra.identity
-      when: identity_enabled | default(true)
-      tags: identity
-
-    # ==========================================================================
-    # LAYER 4: HEALTH & SCALING
-    # ==========================================================================
-    - role: ziix.infra.autoheal
-      when: use_autoheal | default(true)
-      tags: autoheal
-
-    - role: ziix.infra.sablier
-      when: use_sablier | default(false)
-      tags: sablier
-
-    - role: ziix.infra.watchtower
-      when: watchtower_enabled | default(false)
-      tags: watchtower
-
-    # ==========================================================================
-    # LAYER 5: APPLICATIONS (Services Menu)
-    # ==========================================================================
-    - role: ziix.infra.homer
-      when: homer_enabled | default(false)
-      tags: homer
-
-    - role: ziix.infra.dozzle
-      when: dozzle_enabled | default(false)
-      tags: dozzle
-
-    - role: ziix.infra.beszel
-      when: beszel_enabled | default(false)
-      tags: beszel
-
-    - role: ziix.infra.vaultwarden
-      when: vaultwarden_enabled | default(false)
-      tags: vaultwarden
-
-    - role: ziix.infra.hugo
-      when: hugo_enabled | default(false)
-      tags: hugo
-
-    - role: ziix.infra.syncthing
-      when: syncthing_enabled | default(false)
-      tags: syncthing
-
-    # ==========================================================================
-    # LAYER 6: COMMUNICATIONS
-    # ==========================================================================
-    - role: ziix.infra.tuwunel
-      when: tuwunel_enabled | default(false)
-      tags: tuwunel
-
-    # ==========================================================================
-    # LAYER 7: BACKUP
-    # ==========================================================================
-    - role: ziix.infra.restic
-      when: restic_enabled | default(false)
-      tags: restic
+    # [PROTECTION]
+    - { role: ziix.infra.restic, tags: restic, when: restic_enabled | default(false) }
