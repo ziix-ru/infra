@@ -1,5 +1,14 @@
 ---
-# --- ЧАСТЬ 1: AGENT (LAPI) В DOCKER ---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - crowdsec.bouncer_key is defined
+      - deploy_user is defined
+    fail_msg: "Required variables missing for CrowdSec"
+  tags: [crowdsec, check]
+
+# --- PART 1: DOCKER AGENT ---
+
 - name: Ensure CrowdSec directories exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -8,24 +17,25 @@
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
   loop:
-    - "{{ crowdsec_base_dir }}"
-    - "{{ crowdsec_base_dir }}/config"
-    - "{{ crowdsec_base_dir }}/data"
+    - "{{ crowdsec.path }}"
+    - "{{ crowdsec.path }}/config"
+    - "{{ crowdsec.path }}/data"
+  tags: [crowdsec, filesystem]
 
-- name: Create acquis.yaml
+- name: Render acquis.yaml
   ansible.builtin.template:
     src: acquis.yaml.j2
-    dest: "{{ crowdsec_base_dir }}/acquis.yaml"
+    dest: "{{ crowdsec.path }}/acquis.yaml"
     mode: '0644'
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
   notify: Restart CrowdSec
   tags: [crowdsec, config]
 
-- name: Create docker-compose.yml
+- name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
-    dest: "{{ crowdsec_base_dir }}/docker-compose.yml"
+    dest: "{{ crowdsec.path }}/docker-compose.yml"
     mode: '0644'
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
@@ -34,7 +44,7 @@
 
 - name: Deploy CrowdSec Agent
   community.docker.docker_compose_v2:
-    project_src: "{{ crowdsec_base_dir }}"
+    project_src: "{{ crowdsec.path }}"
     state: present
     pull: missing
     remove_orphans: true
@@ -42,7 +52,7 @@
   become_user: "{{ deploy_user }}"
   tags: [crowdsec, deploy]
 
-# --- ЧАСТЬ 2: BOUNCER НА ХОСТЕ (IPTABLES) ---
+# --- PART 2: HOST BOUNCER ---
 
 - name: Download CrowdSec GPG key
   ansible.builtin.get_url:
@@ -51,17 +61,14 @@
     mode: '0644'
   tags: [crowdsec, system]
 
-- name: Add CrowdSec Repository (Force Bookworm)
+- name: Add CrowdSec Repository
   ansible.builtin.apt_repository:
-    repo: >-
-      deb [signed-by=/usr/share/keyrings/crowdsec_crowdsec-archive-keyring.asc]
-      https://packagecloud.io/crowdsec/crowdsec/debian/
-      bookworm main
+    repo: "deb [signed-by=/usr/share/keyrings/crowdsec_crowdsec-archive-keyring.asc] https://packagecloud.io/crowdsec/crowdsec/debian/ bookworm main"
     state: present
     filename: crowdsec_crowdsec
   tags: [crowdsec, system]
 
-- name: Install Firewall Bouncer
+- name: Install Firewall Bouncer (IPTables)
   ansible.builtin.apt:
     name: crowdsec-firewall-bouncer-iptables
     state: present
@@ -83,15 +90,19 @@
     state: started
   tags: [crowdsec, deploy]
 
-# --- ЧАСТЬ 3: СВЯЗКА (РЕГИСТРАЦИЯ) ---
+# --- PART 3: REGISTRATION ---
 
-- name: Register Bouncer with Agent (via Docker Exec)
-  community.docker.docker_container_exec:
-    container: crowdsec
-    command: "cscli bouncers add firewall-bouncer --key {{ vault_crowdsec.bouncer_key }}"
-  register: crowdsec_bouncer_add_result
+# We use 'shell' instead of 'docker_container_exec' for specific exit code handling
+- name: Register Bouncer with Agent
+  ansible.builtin.shell:
+    cmd: >
+      docker exec crowdsec cscli bouncers add firewall-bouncer --key {{ crowdsec.bouncer_key }}
+  register: bouncer_reg
+  # Ignore error if already registered ("already exists" or similar error)
+  # Ideally check if registered first, but this is idempotent enough for now
   failed_when:
-    - crowdsec_bouncer_add_result.rc != 0
-    - "'already exists' not in crowdsec_bouncer_add_result.stderr"
+    - bouncer_reg.rc != 0
+    - "'already exists' not in bouncer_reg.stderr"
+  changed_when: "'registered' in bouncer_reg.stdout"
   become: true
   tags: [crowdsec, deploy]

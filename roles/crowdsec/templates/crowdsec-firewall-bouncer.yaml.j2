@@ -3,8 +3,8 @@ update_frequency: 10s
 log_mode: file
 log_dir: /var/log/
 log_level: info
-api_url: http://127.0.0.1:8080/
-api_key: {{ vault_crowdsec.bouncer_key }}
+api_url: http://127.0.0.1:{{ crowdsec.api.port }}/
+api_key: {{ crowdsec.bouncer_key }}
 disable_ipv6: false
 deny_action: DROP
 deny_log: true

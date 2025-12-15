@@ -1,8 +1,10 @@
 ---
 - name: Restart CrowdSec
   community.docker.docker_compose_v2:
-    project_src: "{{ crowdsec_base_dir }}"
+    project_src: "{{ crowdsec.path }}"
     state: restarted
+  become: true
+  become_user: "{{ deploy_user }}"
 
 - name: Restart Bouncer
   ansible.builtin.systemd:

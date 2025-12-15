@@ -1,24 +1,46 @@
 ---
-crowdsec_service_name: "crowdsec"
-crowdsec_base_dir: "{{ docker_base_dir }}/{{ crowdsec_service_name }}"
+crowdsec:
+  service: "crowdsec"
 
-# Коллекции защиты
-crowdsec_collections:
-  - crowdsecurity/linux
-  - crowdsecurity/sshd
-  - crowdsecurity/caddy
-  - crowdsecurity/http-cve
+  # Image + Tag
+  image: "crowdsecurity/crowdsec:latest"
 
-# Белые списки (чтобы не забанить себя)
-crowdsec_whitelists:
-  - "127.0.0.1"
-  - "::1"
+  path: "{{ docker.base_dir }}/crowdsec"
 
-# Ресурсы агента
-crowdsec_memory_limit: "{{ docker_memory_limit | default('512M') }}"
+  # Collections to install
+  collections:
+    - crowdsecurity/linux
+    - crowdsecurity/sshd
+    - crowdsecurity/caddy
+    - crowdsecurity/http-cve
 
-# Healthcheck
-crowdsec_hc_interval: "60s"
-crowdsec_hc_timeout: "30s"
-crowdsec_hc_retries: 3
-crowdsec_hc_start_period: "120s"
+  # Whitelist (self)
+  whitelists:
+    - "127.0.0.1"
+    - "::1"
+
+  # API Config
+  api:
+    port: 8080
+
+  # Secrets (Vault)
+  bouncer_key: "{{ vault_crowdsec.bouncer_key }}"
+
+  # Resources
+  memory: "512M"
+
+  # Integration
+  autoheal: true
+
+  # Log Source Paths
+  logs:
+    system_auth: "/var/log/auth.log"
+    system_syslog: "/var/log/syslog"
+    caddy: "{{ docker.base_dir }}/caddy/logs"
+
+  # Healthcheck (Heavy startup)
+  healthcheck:
+    interval: "60s"
+    timeout: "30s"
+    retries: 3
+    start_period: "120s"

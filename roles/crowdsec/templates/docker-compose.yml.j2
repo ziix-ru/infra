@@ -1,46 +1,51 @@
 services:
-  # --- AGENT (LAPI + Parser) ---
-  agent:
-    image: crowdsecurity/crowdsec:latest
-    container_name: crowdsec
-    restart: unless-stopped
+  {{ crowdsec.service }}:
+    image: "{{ crowdsec.image }}"
+    container_name: "{{ crowdsec.service }}"
+    restart: "unless-stopped"
+
     deploy:
       resources:
         limits:
-          memory: {{ crowdsec_memory_limit }}
+          memory: {{ crowdsec.memory }}
+
     environment:
+      # Run as user 1000 to match host files if needed, or default
       GID: "1000"
-      COLLECTIONS: "{{ crowdsec_collections | join(' ') }}"
+      COLLECTIONS: "{{ crowdsec.collections | join(' ') }}"
 
     volumes:
       - ./acquis.yaml:/etc/crowdsec/acquis.yaml
       - ./config:/etc/crowdsec
       - ./data:/var/lib/crowdsec/data
-      # Системные логи (SSH)
-      - /var/log/auth.log:/var/log/auth.log:ro
-      - /var/log/syslog:/var/log/syslog:ro
-      # Логи Caddy (читаем из папки Caddy)
-      - {{ docker_base_dir }}/caddy/logs:/var/log/caddy:ro
+      # System Logs
+      - {{ crowdsec.logs.system_auth }}:/var/log/auth.log:ro
+      - {{ crowdsec.logs.system_syslog }}:/var/log/syslog:ro
+      # Caddy Logs
+      - {{ crowdsec.logs.caddy }}:/var/log/caddy:ro
 
     ports:
-      # Открываем LAPI на localhost:8080 для хостового баунсера
-      - "127.0.0.1:8080:8080"
+      # Expose LAPI to localhost ONLY (for host bouncer)
+      - "127.0.0.1:{{ crowdsec.api.port }}:8080"
+
     networks:
-      - {{ docker_network_name }}
+      - {{ docker.network }}
 
     security_opt:
       - no-new-privileges=true
 
     healthcheck:
       test: ["CMD", "cscli", "metrics"]
-      interval: {{ crowdsec_hc_interval }}
-      timeout: {{ crowdsec_hc_timeout }}
-      retries: {{ crowdsec_hc_retries }}
-      start_period: {{ crowdsec_hc_start_period }}
+      interval: {{ crowdsec.healthcheck.interval }}
+      timeout: {{ crowdsec.healthcheck.timeout }}
+      retries: {{ crowdsec.healthcheck.retries }}
+      start_period: {{ crowdsec.healthcheck.start_period }}
 
+{% if crowdsec.autoheal | bool %}
     labels:
       autoheal: "true"
+{% endif %}
 
 networks:
-  {{ docker_network_name }}:
+  {{ docker.network }}:
     external: true
