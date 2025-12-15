@@ -21,8 +21,8 @@ syncthing:
     discovery: 21027 # Discovery (Local)
 
   # Permissions (LinuxServer.io specific)
-  puid: "{{ docker.defaults.puid }}"
-  pgid: "{{ docker.defaults.pgid }}"
+  puid: "{{ docker.puid }}"
+  pgid: "{{ docker.pgid }}"
 
   # Auth (SSO via TinyAuth)
   auth_enabled: true

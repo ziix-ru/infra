@@ -11,8 +11,8 @@ services:
 
     environment:
       - TZ={{ system.timezone | default('UTC') }}
-      - PUID={{ docker.defaults.puid }}
-      - PGID={{ docker.defaults.pgid }}
+      - PUID={{ docker.puid }}
+      - PGID={{ docker.pgid }}
 
     volumes:
       - "{{ homer.assets_dir }}:/www/assets"

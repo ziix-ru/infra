@@ -60,7 +60,7 @@
     name: "{{ item }}"
     groups: docker
     append: true
-  loop: "{{ docker.users }}"
+  loop: "{{ docker_group_users }}"
   tags: [docker, system]
 
 - name: Ensure shared Docker network exists
@@ -71,11 +71,11 @@
 
 - name: Log into Docker Hub
   community.docker.docker_login:
-    username: "{{ docker.registry.username }}"
-    password: "{{ docker.registry.password }}"
+    username: "{{ docker_registry_auth.username }}"
+    password: "{{ docker_registry_auth.password }}"
     state: present
   become: true
   when:
-    - docker.registry.username | length > 0
-    - docker.registry.password | length > 0
+    - docker_registry_auth.username | length > 0
+    - docker_registry_auth.password | length > 0
   tags: [docker, config]

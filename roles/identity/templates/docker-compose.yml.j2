@@ -11,8 +11,8 @@ services:
           memory: {{ identity.lldap.memory }}
           cpus: '0.5'
     environment:
-      - UID={{ docker.defaults.puid }}
-      - GID={{ docker.defaults.pgid }}
+      - UID={{ docker.puid }}
+      - GID={{ docker.pgid }}
       - TZ={{ system.timezone | default('UTC') }}
       - LLDAP_HTTP_PORT={{ identity.lldap.port.http }}
       - LLDAP_LDAP_PORT={{ identity.lldap.port.ldap }}
@@ -59,8 +59,8 @@ services:
     environment:
       APP_URL: "https://{{ identity.pocketid.domain }}"
       TRUST_PROXY: "true"
-      PUID: "{{ docker.defaults.puid }}"
-      PGID: "{{ docker.defaults.pgid }}"
+      PUID: "{{ docker.puid }}"
+      PGID: "{{ docker.pgid }}"
       UI_CONFIG_DISABLED: "true"
       EMAILS_VERIFIED: "true"
       TZ: "{{ system.timezone | default('UTC') }}"

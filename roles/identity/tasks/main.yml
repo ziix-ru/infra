@@ -1,4 +1,11 @@
 ---
+- name: 🔍 DEBUG VAULT SOURCE
+  debug:
+    msg:
+      - "Vault loaded: {{ vault_identity is defined }}"
+      - "Vault content: {{ vault_identity | default('MISSING') }}"
+  tags: [identity, check]
+
 - name: Validate secrets
   ansible.builtin.assert:
     that:
@@ -12,8 +19,8 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ docker.defaults.puid }}"
-    group: "{{ docker.defaults.pgid }}"
+    owner: "{{ docker.puid }}"
+    group: "{{ docker.pgid }}"
     mode: "0755"
   loop:
     - "{{ identity.path }}"
@@ -138,10 +145,10 @@
       # 1. Get Token
       LINK=$(docker exec pocketid /app/pocket-id one-time-access-token {{ identity.lldap.admin.dn }})
       TOKEN=$(echo "$LINK" | grep -o 'https://[^ ]*' | awk -F/ '{print $NF}' | tr -d '\r')
-      
+
       # 2. Login
       curl -s -c /tmp/pocket_cookie.txt -X POST "http://127.0.0.1:{{ identity.pocketid.port }}/api/one-time-access-token/$TOKEN" > /dev/null
-      
+
       # 3. Create Client
       RESP=$(curl -s -b /tmp/pocket_cookie.txt \
         -X POST "http://127.0.0.1:{{ identity.pocketid.port }}/api/oidc/clients" \
@@ -153,7 +160,7 @@
           "pkceEnabled": true,
           "isPublic": false
         }')
-      
+
       ID=$(echo "$RESP" | jq -r '.id // empty')
       SECRET=$(echo "$RESP" | jq -r '.credentials.secret // .clientSecret // empty')
 

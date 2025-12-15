@@ -3,31 +3,35 @@
   hosts: prod_node
   become: true
 
+  collections:
+    - ziix.infra
+
   roles:
     # [SYSTEM]
-    - { role: ziix.infra.common, tags: common }
-    - { role: ziix.infra.docker, tags: docker }
+    - { role: common, tags: common }
+    - { role: docker, tags: docker }
 
     # [NETWORK]
-    - { role: ziix.infra.socket_proxy, tags: socket_proxy, when: use_socket_proxy | default(false) }
-    - { role: ziix.infra.identity, tags: identity, when: identity_enabled | default(true) }
-    - { role: ziix.infra.sablier, tags: sablier, when: use_sablier | default(false) }
-    - { role: ziix.infra.caddy, tags: caddy, when: caddy_enabled | default(true) }
-    - { role: ziix.infra.crowdsec, tags: crowdsec, when: crowdsec_enabled | default(true) }
+    - { role: caddy, tags: caddy, when: enable.caddy | default(false) }
+    - { role: socket_proxy, tags: socket_proxy, when: enable.socket_proxy | default(false) }
+    - { role: identity, tags: identity, when: enable.identity | default(false) }
+    - { role: sablier, tags: sablier, when: enable.sablier | default(false) }
+    - { role: crowdsec, tags: crowdsec, when: enable.crowdsec | default(false) }
+    - { role: amnezia, tags: amnezia, when: enable.amnezia | default(false) }
 
     # [OPERATIONS]
-    - { role: ziix.infra.autoheal, tags: autoheal, when: use_autoheal | default(true) }
-    - { role: ziix.infra.watchtower, tags: watchtower, when: watchtower_enabled | default(false) }
-    - { role: ziix.infra.gatus, tags: gatus, when: gatus_enabled | default(false) }
-    - { role: ziix.infra.dozzle, tags: dozzle, when: dozzle_enabled | default(false) }
-    - { role: ziix.infra.beszel, tags: beszel, when: beszel_enabled | default(false) }
+    - { role: autoheal, tags: autoheal, when: enable.autoheal | default(false) }
+    - { role: watchtower, tags: watchtower, when: enable.watchtower | default(false) }
+    - { role: gatus, tags: gatus, when: enable.gatus | default(false) }
+    - { role: dozzle, tags: dozzle, when: enable.dozzle | default(false) }
+    - { role: beszel, tags: beszel, when: enable.beszel | default(false) }
 
     # [APPLICATIONS]
-    - { role: ziix.infra.homer, tags: homer, when: homer_enabled | default(false) }
-    - { role: ziix.infra.vaultwarden, tags: vaultwarden, when: vaultwarden_enabled | default(false) }
-    - { role: ziix.infra.hugo, tags: hugo, when: hugo_enabled | default(false) }
-    - { role: ziix.infra.syncthing, tags: syncthing, when: syncthing_enabled | default(false) }
-    - { role: ziix.infra.tuwunel, tags: tuwunel, when: tuwunel_enabled | default(false) }
+    - { role: homer, tags: homer, when: enable.homer | default(false) }
+    - { role: vaultwarden, tags: vaultwarden, when: enable.vaultwarden | default(false) }
+    - { role: hugo, tags: hugo, when: enable.hugo | default(false) }
+    - { role: syncthing, tags: syncthing, when: enable.syncthing | default(false) }
+    - { role: tuwunel, tags: tuwunel, when: enable.tuwunel | default(false) }
 
     # [PROTECTION]
-    - { role: ziix.infra.restic, tags: restic, when: restic_enabled | default(false) }
+    - { role: restic, tags: restic, when: enable.restic | default(false) }

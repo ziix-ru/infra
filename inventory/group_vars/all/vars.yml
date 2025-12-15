@@ -1,87 +1,73 @@
 ---
 # ==============================================================================
-# 🌍 DOMAIN & INFRASTRUCTURE
+# 🌍 INFRASTRUCTURE
 # ==============================================================================
-base_domain: "ziix.ru"
+domain:
+  base: "ziix.ru"
 
-# === USERS ===
+# [ USERS ]
 deploy_user: "deploy"
-admin_username: "admin"
-# Credentials from Vault
-admin_email: "{{ vault_infra.admin_email }}"
-admin_password: "{{ vault_infra.admin_password }}"
+
+admin:
+  username: "admin"
+  email: "{{ vault_infra.admin_email }}"
+  password: "{{ vault_infra.admin_password }}"
 
 # ==============================================================================
 # ⚙️ SYSTEM & DOCKER
 # ==============================================================================
-docker_base_dir: "/srv/docker"
-docker_network_name: "web"
-docker_restart_policy: "unless-stopped"
+docker:
+  base_dir: "/srv/docker"
+  network: "web"
 
-# [ Defaults ]
-docker_image_tag: "latest"
-docker_memory_limit: "256M"
-docker_timezone: "Europe/Moscow"
+  # --- Container Defaults (No nested 'defaults' key now) ---
+  timezone: "Europe/Moscow"
+  image_tag: "latest"
+  restart_policy: "unless-stopped"
+  memory_limit: "256M"
 
-# [ User Permissions (LSIO style) ]
-docker_puid: "1000"
-docker_pgid: "1000"
+  # Permissions (LSIO)
+  puid: "1000"
+  pgid: "1000"
 
-# [ Healthcheck Strategy ]
-docker_hc_interval: "60s"
-docker_hc_timeout: "10s"
-docker_hc_retries: 3
-docker_hc_start_period: "10s"
+  # Healthcheck Strategy
+  healthcheck:
+    interval: "60s"
+    timeout: "10s"
+    retries: 3
+    start_period: "10s"
 
-# ==============================================================================
-# 🛡️ GLOBAL FEATURE FLAGS (System-wide)
-# ==============================================================================
-# Безопасный доступ к Docker API (Рекомендуется: true)
-use_socket_proxy: true
-
-# Экономия ресурсов: Scale-to-Zero (Рекомендуется: true)
-use_sablier: true
-
-# Автоматическое лечение контейнеров (Рекомендуется: true)
-use_autoheal: true
+system:
+  swap_size: "4G"
+  zram_percent: "25"
 
 # ==============================================================================
-# 📋 SERVICES MENU (Стол заказов)
-# true = Install & Run | false = Skip
+# 🛡️ FEATURE FLAGS
 # ==============================================================================
+enable:
+  # Network & Security
+  socket_proxy: true
+  caddy: true
+  crowdsec: true
+  identity: true
+  sablier: true
+  cloudflare_dns: true
+  amnezia: true
 
-# --- Core Infrastructure ---
-caddy_enabled: true       # Ingress Controller (Web Server)
-use_cloudflare_dns: true # Использовать ли Cloudflare Wildcard
-crowdsec_enabled: true    # <--- ДОБАВЛЕНО: CrowdSec (IPS/IDS)
+  # Ops & Monitoring
+  autoheal: true
+  watchtower: true
+  gatus: true
+  dozzle: true
+  beszel: true
 
-identity_enabled: true    # Auth (LLDAP, PocketID, TinyAuth)
+  # Applications
+  homer: true
+  vaultwarden: true
+  hugo: true
+  syncthing: true
+  tuwunel: true
+  tuwunel_livekit: true
 
-# --- Management & Monitoring ---
-homer_enabled: true    # Dashboard (Homer)
-dozzle_enabled: true      # Logs Viewer
-beszel_enabled: true      # Lightweight Monitoring
-watchtower_enabled: true
-gatus_enabled: true
-
-# --- Applications ---
-vaultwarden_enabled: true # Password Manager
-hugo_enabled: true        # Static Site / Blog
-syncthing_enabled: true  # P2P File Sync (Отключено пока)
-
-# --- Communications ---
-tuwunel_enabled: true     # Matrix Homeserver + LiveKit
-matrix_domain: "matrix.{{ base_domain }}"
-tuwunel_livekit_enabled: true
-
-# --- Maintenance ---
-restic_enabled: true     # Backup System (Отключено пока)
-
-# ==============================================================================
-# 🔧 TUNING & RESOURCES
-# ==============================================================================
-swap_file_size: "4G"
-zram_percentage: "25"
-
-turn_relay_port_start: 49152
-turn_relay_port_end: 49200
+  # Maintenance
+  restic: true

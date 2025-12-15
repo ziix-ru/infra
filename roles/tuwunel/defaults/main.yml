@@ -37,7 +37,7 @@ tuwunel:
     bind_password_file: "/var/lib/tuwunel/.ldap_bind_password"
 
   # --- RESOURCES ---
-  memory: "{{ docker.defaults.memory | default('384M') }}"
+  memory: "{{ docker.memory | default('384M') }}"
 
   # --- INTEGRATIONS ---
   autoheal: true

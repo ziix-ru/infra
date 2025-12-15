@@ -25,7 +25,7 @@ vaultwarden:
   admin_token: "{{ vault_vaultwarden.admin_token | default('') }}"
 
   # Resources (Inherit global default)
-  memory: "{{ docker.defaults.memory }}"
+  memory: "{{ docker.memory }}"
 
   # Integrations
   autoheal: true

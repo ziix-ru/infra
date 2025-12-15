@@ -8,7 +8,7 @@
 - name: Configure Docker Daemon (daemon.json)
   ansible.builtin.copy:
     dest: /etc/docker/daemon.json
-    # Превращаем словарь Ansible в красивый JSON
-    content: "{{ docker.daemon | to_nice_json }}"
+    # БЫЛО: docker.daemon
+    content: "{{ docker_daemon_config | to_nice_json }}"
     mode: '0644'
   notify: Restart Docker

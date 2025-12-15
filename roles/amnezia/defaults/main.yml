@@ -27,7 +27,7 @@ amnezia:
   auth_enabled: true
 
   # Resources (Inherit global default)
-  memory: "{{ docker.defaults.memory }}"
+  memory: "{{ docker.memory_limit }}"
 
   # Integrations
   autoheal: true
