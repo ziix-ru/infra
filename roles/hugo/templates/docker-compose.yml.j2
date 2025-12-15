@@ -38,7 +38,7 @@ services:
 
   # --- Hugo Builder ---
   {{ hugo.builder }}:
-    image: hugomods/hugo:base
+    image: hugomods/hugo:exts
     container_name: {{ hugo.builder }}
     restart: "no"
     environment:
