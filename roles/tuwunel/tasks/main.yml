@@ -2,21 +2,12 @@
 - name: Validate required variables
   ansible.builtin.assert:
     that:
-      - tuwunel_domain is defined
-      - tuwunel_livekit_key is defined
+      - tuwunel.domain is defined
+      - livekit.key is defined
       - deploy_user is defined
     fail_msg: "Required variables missing for Tuwunel/LiveKit"
   tags: [tuwunel, check]
 
-- name: Ensure Docker network exists
-  community.docker.docker_network:
-    name: "{{ tuwunel_docker_network }}"
-    state: present
-  become: true
-  become_user: "{{ deploy_user }}"
-  tags: [tuwunel, network]
-
-# 1. Папки
 - name: Ensure Tuwunel directories exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -25,36 +16,33 @@
     group: "{{ deploy_user }}"
     mode: "0755"
   loop:
-    - "{{ tuwunel_compose_dir }}"
-    - "{{ tuwunel_config_dir }}"
-    - "{{ tuwunel_data_dir }}"
+    - "{{ tuwunel.path }}"
+    - "{{ tuwunel.path }}/config"
+    - "{{ tuwunel.path }}/data"
   tags: [tuwunel, filesystem]
 
-# 2. Секреты (LDAP Password)
 - name: Create LDAP Bind Password file
   ansible.builtin.copy:
-    dest: "{{ tuwunel_compose_dir }}/.ldap_bind_password"
-    content: "{{ tuwunel_ldap_bind_password }}"
+    dest: "{{ tuwunel.path }}/.ldap_bind_password"
+    content: "{{ tuwunel.ldap.bind_password }}"
     mode: '0600'
     owner: "{{ deploy_user }}"
   no_log: true
-  when: tuwunel_ldap_enabled | default(false)
+  when: tuwunel.ldap.enabled | bool
   tags: [tuwunel, config]
 
-# 3. Конфиги (Tuwunel & LiveKit)
 - name: Render Configs
   ansible.builtin.template:
     src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
+    dest: "{{ tuwunel.path }}/config/{{ item.dest }}"
     mode: "0644"
     owner: "{{ deploy_user }}"
   loop:
-    - { src: "tuwunel.toml.j2", dest: "{{ tuwunel_config_dir }}/tuwunel.toml" }
-    - { src: "livekit.yaml.j2", dest: "{{ tuwunel_config_dir }}/livekit.yaml" }
+    - { src: "tuwunel.toml.j2", dest: "tuwunel.toml" }
+    - { src: "livekit.yaml.j2", dest: "livekit.yaml" }
   notify: Restart Tuwunel
   tags: [tuwunel, config]
 
-# 4. UFW (Firewall)
 - name: Configure UFW for Matrix & LiveKit
   community.general.ufw:
     rule: allow
@@ -63,15 +51,14 @@
     comment: "{{ item.comment }}"
   loop:
     - { port: "8448", proto: "tcp", comment: "Matrix Federation" }
-    - { port: "{{ tuwunel_livekit_tcp_port }}", proto: "tcp", comment: "LiveKit TCP" }
-    - { port: "{{ tuwunel_livekit_udp_start }}:{{ tuwunel_livekit_udp_end }}", proto: "udp", comment: "LiveKit WebRTC" }
+    - { port: "{{ livekit.ports.tcp }}", proto: "tcp", comment: "LiveKit TCP" }
+    - { port: "{{ livekit.ports.udp_start }}:{{ livekit.ports.udp_end }}", proto: "udp", comment: "LiveKit WebRTC" }
   tags: [tuwunel, firewall]
 
-# 5. Docker Compose
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
-    dest: "{{ tuwunel_compose_dir }}/docker-compose.yml"
+    dest: "{{ tuwunel.path }}/docker-compose.yml"
     mode: "0640"
     owner: "{{ deploy_user }}"
     group: docker
@@ -80,9 +67,8 @@
 
 - name: Deploy Tuwunel Stack
   community.docker.docker_compose_v2:
-    project_src: "{{ tuwunel_compose_dir }}"
+    project_src: "{{ tuwunel.path }}"
     state: present
-    # Исправляем синтаксис
     pull: always
     remove_orphans: true
   become: true

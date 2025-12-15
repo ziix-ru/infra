@@ -1,21 +1,7 @@
 ---
-# Имя изменено с "Restart tuwunel service" на "Restart Tuwunel"
 - name: Restart Tuwunel
   community.docker.docker_compose_v2:
-    project_src: "{{ tuwunel_compose_dir }}"
-    services: ["{{ tuwunel_service_name }}"]
+    project_src: "{{ tuwunel.path }}"
     state: restarted
   become: true
   become_user: "{{ deploy_user }}"
-  listen: restart tuwunel
-
-- name: Restart livekit services
-  community.docker.docker_compose_v2:
-    project_src: "{{ tuwunel_compose_dir }}"
-    services:
-      - "{{ tuwunel_livekit_service_name }}"
-      - "{{ tuwunel_jwt_service_name }}"
-    state: restarted
-  become: true
-  become_user: "{{ deploy_user }}"
-  listen: restart livekit

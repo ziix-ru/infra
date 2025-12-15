@@ -1,161 +1,157 @@
 services:
-  {{ tuwunel_service_name }}:
-    image: "{{ tuwunel_image }}:{{ tuwunel_image_tag }}"
-    container_name: "{{ tuwunel_service_name }}"
-    restart: "{{ tuwunel_restart_policy }}"
+  # === 1. TUWUNEL (MATRIX) ===
+  {{ tuwunel.service }}:
+    image: "{{ tuwunel.image }}"
+    container_name: "{{ tuwunel.service }}"
+    restart: "unless-stopped"
 
     deploy:
       resources:
         limits:
-          memory: {{ tuwunel_memory_limit }}
+          memory: {{ tuwunel.memory }}
 
     volumes:
       - ./config/tuwunel.toml:/etc/tuwunel/tuwunel.toml:ro
       - ./data:/var/lib/tuwunel
-{% if tuwunel_ldap_enabled %}
-      - ./.ldap_bind_password:{{ tuwunel_ldap_bind_password_file }}:ro
+{% if tuwunel.ldap.enabled %}
+      - ./.ldap_bind_password:{{ tuwunel.ldap.bind_password_file }}:ro
 {% endif %}
 
     networks:
-      - {{ tuwunel_docker_network }}
+      - {{ docker.network }}
 
     environment:
       - TUWUNEL_CONFIG=/etc/tuwunel/tuwunel.toml
-      - TUWUNEL_LOG={{ tuwunel_log_level }}
-      - TZ={{ tuwunel_timezone }}
+      - TUWUNEL_LOG={{ tuwunel.config.log_level }}
+      - TZ={{ system.timezone | default('UTC') }}
 
     ulimits:
       nofile:
-        soft: {{ tuwunel_ulimit_nofile_soft }}
-        hard: {{ tuwunel_ulimit_nofile_hard }}
+        soft: {{ tuwunel.config.ulimit }}
+        hard: {{ tuwunel.config.ulimit }}
 
     healthcheck:
       test: ["CMD", "tuwunel", "--version"]
-      interval: {{ tuwunel_hc_interval }}
-      timeout: {{ tuwunel_hc_timeout }}
-      retries: {{ tuwunel_hc_retries }}
+      interval: {{ tuwunel.healthcheck.interval }}
+      timeout: {{ tuwunel.healthcheck.timeout }}
+      retries: {{ tuwunel.healthcheck.retries }}
       start_period: 40s
 
     labels:
-{% if tuwunel_ingress_provider == 'caddy' %}
-      # === SITE 1: Matrix (matrix.ziix.ru) ===
-      caddy: "{{ tuwunel_domain }}"
+      # === INGRESS: MATRIX ===
+      caddy: "{{ tuwunel.domain }}"
       caddy.import: "secure-headers"
-
-      # Routes
       caddy.route: ""
 
-      # 1. Well-known Client
+      # .well-known Client
       caddy.route.0_handle_path: "/.well-known/matrix/client"
       caddy.route.0_handle_path.header_0: "Access-Control-Allow-Origin *"
       caddy.route.0_handle_path.header_1: "+Content-Type application/json"
-      caddy.route.0_handle_path.respond: '`{ "m.homeserver":{"base_url":"https://{{ tuwunel_domain }}"}, "org.matrix.msc4143.rtc_foci":[{"type":"livekit","livekit_service_url":"https://{{ tuwunel_livekit_domain }}","jwt_service_url":"https://{{ tuwunel_livekit_domain }}/sfu/get"}] }`'
+      caddy.route.0_handle_path.respond: '`{ "m.homeserver":{"base_url":"https://{{ tuwunel.domain }}"}, "org.matrix.msc4143.rtc_foci":[{"type":"livekit","livekit_service_url":"https://{{ livekit.domain }}","jwt_service_url":"https://{{ livekit.domain }}/sfu/get"}] }`'
 
-      # 2. Well-known Server
+      # .well-known Server
       caddy.route.1_handle_path: "/.well-known/matrix/server"
       caddy.route.1_handle_path.header_0: "Access-Control-Allow-Origin *"
       caddy.route.1_handle_path.header_1: "+Content-Type application/json"
-      caddy.route.1_handle_path.respond: '`{"m.server":"{{ tuwunel_domain }}:443"}`'
+      caddy.route.1_handle_path.respond: '`{"m.server":"{{ tuwunel.domain }}:443"}`'
 
-      # 3. Proxy to Matrix
-      caddy.route.2_reverse_proxy: "{{ tuwunel_service_name }}:{{ tuwunel_port }}"
+      # Proxy
+      caddy.route.2_reverse_proxy: "{{ tuwunel.service }}:8008"
 
-      # === SITE 2: Root Domain (ziix.ru) ===
-      caddy_1: "{{ tuwunel_server_name }}"
+      # === INGRESS: ROOT DOMAIN (Delegation) ===
+      caddy_1: "{{ tuwunel.server_name }}"
       caddy_1.import: "secure-headers"
       caddy_1.route: ""
 
-      # 1. Well-known Client
+      # Повторяем well-known для базового домена
       caddy_1.route.0_handle_path: "/.well-known/matrix/client"
       caddy_1.route.0_handle_path.header_0: "Access-Control-Allow-Origin *"
       caddy_1.route.0_handle_path.header_1: "+Content-Type application/json"
-      caddy_1.route.0_handle_path.respond: '`{ "m.homeserver":{"base_url":"https://{{ tuwunel_domain }}"}, "org.matrix.msc4143.rtc_foci":[{"type":"livekit","livekit_service_url":"https://{{ tuwunel_livekit_domain }}","jwt_service_url":"https://{{ tuwunel_livekit_domain }}/sfu/get"}] }`'
+      caddy_1.route.0_handle_path.respond: '`{ "m.homeserver":{"base_url":"https://{{ tuwunel.domain }}"}, "org.matrix.msc4143.rtc_foci":[{"type":"livekit","livekit_service_url":"https://{{ livekit.domain }}","jwt_service_url":"https://{{ livekit.domain }}/sfu/get"}] }`'
 
-      # 2. Well-known Server
       caddy_1.route.1_handle_path: "/.well-known/matrix/server"
       caddy_1.route.1_handle_path.header_0: "Access-Control-Allow-Origin *"
       caddy_1.route.1_handle_path.header_1: "+Content-Type application/json"
-      caddy_1.route.1_handle_path.respond: '`{"m.server":"{{ tuwunel_domain }}:443"}`'
-{% endif %}
+      caddy_1.route.1_handle_path.respond: '`{"m.server":"{{ tuwunel.domain }}:443"}`'
 
-{% if tuwunel_enable_autoheal | bool %}
+{% if tuwunel.autoheal | bool %}
       autoheal: "true"
 {% endif %}
 
-  {{ tuwunel_livekit_service_name }}:
-    image: "{{ tuwunel_livekit_image }}:{{ tuwunel_livekit_tag }}"
-    container_name: "{{ tuwunel_livekit_service_name }}"
-    restart: "{{ tuwunel_restart_policy }}"
+  # === 2. LIVEKIT ===
+  {{ livekit.service }}:
+    image: "{{ livekit.image }}"
+    container_name: "{{ livekit.service }}"
+    restart: "unless-stopped"
 
     deploy:
       resources:
         limits:
-          memory: {{ tuwunel_livekit_memory_limit }}
+          memory: {{ livekit.memory }}
 
     command: --config /etc/livekit.yaml
 
     environment:
-      - TZ={{ tuwunel_timezone }}
+      - TZ={{ system.timezone | default('UTC') }}
 
     networks:
-      - {{ tuwunel_docker_network }}
+      - {{ docker.network }}
 
     ports:
-      - "{{ tuwunel_livekit_http_port }}:{{ tuwunel_livekit_http_port }}"
-      - "{{ tuwunel_livekit_tcp_port }}:{{ tuwunel_livekit_tcp_port }}"
-      - "{{ tuwunel_livekit_udp_start }}-{{ tuwunel_livekit_udp_end }}:{{ tuwunel_livekit_udp_start }}-{{ tuwunel_livekit_udp_end }}/udp"
+      - "{{ livekit.ports.http }}:{{ livekit.ports.http }}"
+      - "{{ livekit.ports.tcp }}:{{ livekit.ports.tcp }}"
+      - "{{ livekit.ports.udp_start }}-{{ livekit.ports.udp_end }}:{{ livekit.ports.udp_start }}-{{ livekit.ports.udp_end }}/udp"
 
     volumes:
       - ./config/livekit.yaml:/etc/livekit.yaml:ro
 
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:{{ tuwunel_livekit_http_port }}"]
-      interval: {{ tuwunel_hc_interval }}
-      timeout: {{ tuwunel_hc_timeout }}
-      retries: {{ tuwunel_hc_retries }}
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:{{ livekit.ports.http }}"]
+      interval: {{ tuwunel.healthcheck.interval }}
+      timeout: {{ tuwunel.healthcheck.timeout }}
+      retries: {{ tuwunel.healthcheck.retries }}
       start_period: 20s
 
     labels:
-{% if tuwunel_ingress_provider == 'caddy' %}
-      caddy: "{{ tuwunel_livekit_domain }}"
+      # === INGRESS: LIVEKIT ===
+      caddy: "{{ livekit.domain }}"
       caddy.import: "secure-headers"
-
       caddy.route: ""
 
-      # 1. JWT Service
+      # JWT Auth Service
       caddy.route.0_handle: "/sfu/get*"
-      caddy.route.0_handle.reverse_proxy: "{{ tuwunel_jwt_service_name }}:8081"
+      caddy.route.0_handle.reverse_proxy: "{{ jwt_service.service }}:{{ jwt_service.port }}"
 
-      # 2. LiveKit
-      caddy.route.1_reverse_proxy: "{{ tuwunel_livekit_service_name }}:{{ tuwunel_livekit_http_port }}"
-{% endif %}
+      # LiveKit API
+      caddy.route.1_reverse_proxy: "{{ livekit.service }}:{{ livekit.ports.http }}"
 
-{% if tuwunel_enable_autoheal | bool %}
+{% if tuwunel.autoheal | bool %}
       autoheal: "true"
 {% endif %}
 
-  {{ tuwunel_jwt_service_name }}:
-    image: "{{ tuwunel_jwt_image }}:{{ tuwunel_jwt_tag }}"
-    container_name: "{{ tuwunel_jwt_service_name }}"
-    restart: "{{ tuwunel_restart_policy }}"
+  # === 3. JWT SERVICE ===
+  {{ jwt_service.service }}:
+    image: "{{ jwt_service.image }}"
+    container_name: "{{ jwt_service.service }}"
+    restart: "unless-stopped"
 
     deploy:
       resources:
         limits:
-          memory: {{ tuwunel_jwt_memory_limit }}
+          memory: {{ jwt_service.memory }}
 
     environment:
-      - LIVEKIT_JWT_BIND=:{{ tuwunel_jwt_port }}
-      - LIVEKIT_URL=https://{{ tuwunel_livekit_domain }}
-      - LIVEKIT_KEY={{ tuwunel_livekit_key }}
-      - LIVEKIT_SECRET={{ tuwunel_livekit_secret }}
-      - LIVEKIT_FULL_ACCESS_HOMESERVERS={{ tuwunel_server_name }}
-      - LIVEKIT_LOG_LEVEL={{ tuwunel_jwt_log_level }}
-      - TZ={{ tuwunel_timezone }}
+      - LIVEKIT_JWT_BIND=:{{ jwt_service.port }}
+      - LIVEKIT_URL=https://{{ livekit.domain }}
+      - LIVEKIT_KEY={{ livekit.key }}
+      - LIVEKIT_SECRET={{ livekit.secret }}
+      - LIVEKIT_FULL_ACCESS_HOMESERVERS={{ tuwunel.server_name }}
+      - LIVEKIT_LOG_LEVEL={{ jwt_service.log_level }}
+      - TZ={{ system.timezone | default('UTC') }}
 
     networks:
-      - {{ tuwunel_docker_network }}
+      - {{ docker.network }}
 
 networks:
-  {{ tuwunel_docker_network }}:
+  {{ docker.network }}:
     external: true

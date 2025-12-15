@@ -1,21 +1,21 @@
-port: {{ tuwunel_livekit_http_port }}
+port: {{ livekit.ports.http }}
 bind_addresses:
   - ""
 
 rtc:
   node_ip: "{{ ansible_default_ipv4.address }}"
-  tcp_port: {{ tuwunel_livekit_tcp_port }}
-  port_range_start: {{ tuwunel_livekit_udp_start }}
-  port_range_end: {{ tuwunel_livekit_udp_end }}
+  tcp_port: {{ livekit.ports.tcp }}
+  port_range_start: {{ livekit.ports.udp_start }}
+  port_range_end: {{ livekit.ports.udp_end }}
   use_external_ip: true
   enable_loopback_candidate: false
 
 keys:
-  {{ tuwunel_livekit_key }}: {{ tuwunel_livekit_secret }}
+  {{ livekit.key }}: {{ livekit.secret }}
 
 # Logging
 logging:
-  level: {{ tuwunel_livekit_log_level }}
+  level: {{ livekit.log_level }}
   sample: false
 
 # TURN отключен

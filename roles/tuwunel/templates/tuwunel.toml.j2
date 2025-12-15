@@ -1,58 +1,59 @@
 [global]
-server_name = "{{ tuwunel_server_name }}"
+server_name = "{{ tuwunel.server_name }}"
 database_path = "/var/lib/tuwunel"
 
 address = ["0.0.0.0"]
-port = {{ tuwunel_port }}
+port = 8008
 
 # Registration
-allow_registration = {{ tuwunel_allow_registration | lower }}
-{% if tuwunel_registration_token %}
-registration_token = "{{ tuwunel_registration_token }}"
+allow_registration = {{ tuwunel.config.allow_registration | lower }}
+{% if tuwunel.registration_token %}
+registration_token = "{{ tuwunel.registration_token }}"
 {% endif %}
 
 # Federation
-allow_federation = {{ tuwunel_allow_federation | lower }}
+allow_federation = {{ tuwunel.config.allow_federation | lower }}
 federate_created_rooms = true
 
 # Security
-allow_encryption = {{ tuwunel_allow_encryption | lower }}
+allow_encryption = {{ tuwunel.config.allow_encryption | lower }}
 allow_public_room_directory_over_federation = false
 require_auth_for_profile_requests = true
 allow_device_name_federation = false
 
 # Performance
-max_request_size = {{ tuwunel_max_request_size }}
+max_request_size = {{ tuwunel.config.max_request_size }}
 trusted_servers = ["matrix.org"]
 
 # Logging
-log = "{{ tuwunel_log_level }}"
-log_colors = {{ tuwunel_log_colors | lower }}
+log = "{{ tuwunel.config.log_level }}"
+log_colors = true
 
 # Well-known delegation
 [global.well_known]
-client = "https://{{ tuwunel_domain }}"
-server = "{{ tuwunel_domain }}:443"
+client = "https://{{ tuwunel.domain }}"
+server = "{{ tuwunel.domain }}:443"
 
 # MatrixRTC/LiveKit configuration (MSC4143)
 [[global.well_known.rtc_foci]]
 type = "livekit"
-livekit_service_url = "https://{{ tuwunel_livekit_domain }}"
-livekit_sfu_url = "https://{{ tuwunel_livekit_domain }}/sfu/get"
+livekit_service_url = "https://{{ livekit.domain }}"
+livekit_sfu_url = "https://{{ livekit.domain }}/sfu/get"
 
 # Delayed events для автовыхода из прерванных звонков
 max_event_delay_duration = "24h"
 
-{% if tuwunel_ldap_enabled %}
+{% if tuwunel.ldap.enabled %}
 # LDAP Configuration
 [global.ldap]
 enable = true
-uri = "{{ tuwunel_ldap_uri }}"
-base_dn = "{{ tuwunel_ldap_base_dn }}"
-bind_dn = "{{ tuwunel_ldap_bind_dn }}"
-bind_password_file = "{{ tuwunel_ldap_bind_password_file }}"
-filter = "{{ tuwunel_ldap_filter }}"
-uid_attribute = "{{ tuwunel_ldap_uid_attribute }}"
-mail_attribute = "{{ tuwunel_ldap_mail_attribute }}"
-name_attribute = "{{ tuwunel_ldap_name_attribute }}"
+uri = "{{ tuwunel.ldap.uri }}"
+base_dn = "{{ tuwunel.ldap.base_dn }}"
+bind_dn = "{{ tuwunel.ldap.bind_dn }}"
+bind_password_file = "{{ tuwunel.ldap.bind_password_file }}"
+# Используем default фильтры, если не заданы
+filter = "(&(objectClass=person)(uid={username}))"
+uid_attribute = "uid"
+mail_attribute = "mail"
+name_attribute = "cn"
 {% endif %}

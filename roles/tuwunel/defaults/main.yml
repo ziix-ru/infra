@@ -1,88 +1,79 @@
 ---
-# [ Service Identity ]
-tuwunel_service_name: "tuwunel"
-tuwunel_livekit_service_name: "livekit"
-tuwunel_jwt_service_name: "lk-jwt-service"
+# ansible-lint: disable:var-naming[no-role-prefix]
+tuwunel:
+  service: "tuwunel"
 
-# [ Paths & Directories ]
-tuwunel_root: "{{ docker_base_dir }}/{{ tuwunel_service_name }}"
-tuwunel_compose_dir: "{{ tuwunel_root }}"
-tuwunel_config_dir: "{{ tuwunel_root }}/config"
-tuwunel_data_dir: "{{ tuwunel_root }}/data"
+  # Images (Compact)
+  image: "docker.io/jevolk/tuwunel:latest"
 
-# [ Docker Images ]
-tuwunel_image: "docker.io/jevolk/tuwunel"
-tuwunel_image_tag: "{{ docker_image_tag | default('latest') }}"
+  # Domains
+  domain: "matrix.{{ domain.base }}"
+  server_name: "{{ domain.base }}" # Базовый домен для имен пользователей (@user:ziix.ru)
 
-tuwunel_livekit_image: "livekit/livekit-server"
-tuwunel_livekit_tag: "{{ docker_image_tag | default('latest') }}"
+  # Paths
+  path: "{{ docker.base_dir }}/tuwunel"
 
-tuwunel_jwt_image: "ghcr.io/element-hq/lk-jwt-service"
-tuwunel_jwt_tag: "{{ docker_image_tag | default('latest') }}"
+  # --- CONFIGURATION ---
+  config:
+    allow_registration: true
+    allow_federation: true
+    allow_encryption: true
+    max_request_size: 20971520 # 20MB
+    # Ulimits (critical for high load)
+    ulimit: 1048567
+    log_level: "info"
 
-# [ Domains & Ingress ]
-tuwunel_domain: "{{ matrix_domain | default('matrix.' ~ base_domain) }}"
-tuwunel_server_name: "{{ base_domain }}"
-tuwunel_livekit_domain: "livekit.{{ base_domain }}"
-tuwunel_ingress_provider: "caddy"
+  # --- SECRETS (From Vault) ---
+  registration_token: "{{ vault_matrix.registration_token | default('') }}"
 
-# [ Ports ]
-tuwunel_port: 8008
-tuwunel_livekit_http_port: 7880
-tuwunel_livekit_tcp_port: 7881
-tuwunel_livekit_udp_start: 50000
-tuwunel_livekit_udp_end: 50050
-tuwunel_jwt_port: 8081
+  # --- LDAP ---
+  ldap:
+    enabled: true
+    uri: "ldap://lldap:3890"
+    base_dn: "ou=people,dc=ziix,dc=ru"
+    bind_dn: "uid={{ vault_identity.lldap.admin_login }},ou=people,dc=ziix,dc=ru"
+    bind_password: "{{ vault_identity.lldap.admin_password | default('') }}"
+    # Password file inside container
+    bind_password_file: "/var/lib/tuwunel/.ldap_bind_password"
 
-# [ Configuration ]
-tuwunel_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
-tuwunel_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
+  # --- RESOURCES ---
+  memory: "{{ docker.defaults.memory | default('384M') }}"
 
-tuwunel_allow_registration: true
-tuwunel_allow_federation: true
-tuwunel_allow_encryption: true
+  # --- INTEGRATIONS ---
+  autoheal: true
 
-# [ Secrets ]
-tuwunel_registration_token: "{{ vault_matrix.registration_token | default('') }}"
-tuwunel_livekit_key: "{{ vault_matrix.livekit.key }}"
-tuwunel_livekit_secret: "{{ vault_matrix.livekit.secret }}"
+  # --- HEALTHCHECK ---
+  healthcheck:
+    interval: "30s"
+    timeout: "5s"
+    retries: 3
 
-# [ Network ]
-tuwunel_docker_network: "{{ docker_network_name }}"
 
-# [ Integrations ]
-tuwunel_enable_autoheal: "{{ use_autoheal | default(true) }}"
-tuwunel_use_sablier: false # Matrix must be always online
+# === LIVEKIT SUB-COMPONENT ===
+livekit:
+  service: "livekit"
+  image: "livekit/livekit-server:latest"
+  domain: "livekit.{{ domain.base }}"
 
-# [ Performance & Limits ]
-tuwunel_max_request_size: 20971520
-tuwunel_ulimit_nofile_soft: 1048567
-tuwunel_ulimit_nofile_hard: 1048567
+  # Secrets
+  key: "{{ vault_matrix.livekit.key }}"
+  secret: "{{ vault_matrix.livekit.secret }}"
 
-# [ Resources ]
-tuwunel_memory_limit: "{{ docker_memory_limit | default('384M') }}"
-tuwunel_livekit_memory_limit: "{{ docker_memory_limit | default('384M') }}"
-tuwunel_jwt_memory_limit: "{{ docker_memory_limit | default('64M') }}"
+  # Ports (Inherit from Global Vars)
+  ports:
+    http: 7880
+    tcp: "{{ ports.livekit.tcp }}"
+    udp_start: "{{ ports.livekit.udp.start }}"
+    udp_end: "{{ ports.livekit.udp.end }}"
 
-# [ Logging ]
-tuwunel_log_level: "info"
-tuwunel_log_colors: true
-tuwunel_livekit_log_level: "info"
-tuwunel_jwt_log_level: "info"
+  memory: "384M"
+  log_level: "info"
 
-# [ LDAP Integration ]
-tuwunel_ldap_enabled: true
-tuwunel_ldap_uri: "ldap://lldap:3890"
-tuwunel_ldap_base_dn: "ou=people,dc=ziix,dc=ru"
-tuwunel_ldap_bind_dn: "uid={{ vault_identity.lldap.admin_login }},ou=people,dc=ziix,dc=ru"
-tuwunel_ldap_bind_password: "{{ vault_identity.lldap.admin_password | default('') }}"
-tuwunel_ldap_bind_password_file: "/var/lib/tuwunel/.ldap_bind_password"
-tuwunel_ldap_filter: "(&(objectClass=person)(uid={username}))"
-tuwunel_ldap_uid_attribute: "uid"
-tuwunel_ldap_mail_attribute: "mail"
-tuwunel_ldap_name_attribute: "cn"
 
-# [ Healthcheck ]
-tuwunel_hc_interval: "{{ docker_hc_interval | default('30s') }}"
-tuwunel_hc_timeout: "{{ docker_hc_timeout | default('5s') }}"
-tuwunel_hc_retries: "{{ docker_hc_retries | default(3) }}"
+# === JWT SERVICE SUB-COMPONENT ===
+jwt_service:
+  service: "lk-jwt-service"
+  image: "ghcr.io/element-hq/lk-jwt-service:latest"
+  port: 8081
+  memory: "64M"
+  log_level: "info"
