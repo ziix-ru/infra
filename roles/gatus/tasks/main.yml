@@ -2,11 +2,9 @@
 - name: Validate required variables
   ansible.builtin.assert:
     that:
-      - base_domain is defined
-      - docker_base_dir is defined
-      - gatus_docker_network is defined
+      - gatus.domain is defined
       - deploy_user is defined
-    fail_msg: "CRITICAL: Required variables are missing for Gatus role!"
+    fail_msg: "Required variables missing for Gatus"
   tags: [gatus, check]
 
 - name: Ensure Gatus directories exist
@@ -17,15 +15,15 @@
     group: "{{ deploy_user }}"
     mode: "0755"
   loop:
-    - "{{ gatus_base_dir }}"
-    - "{{ gatus_config_dir }}"
-    - "{{ gatus_data_dir }}"
+    - "{{ gatus.path }}"
+    - "{{ gatus.path }}/config"
+    - "{{ gatus.path }}/data"
   tags: [gatus, filesystem]
 
 - name: Render config.yaml
   ansible.builtin.template:
     src: config.yaml.j2
-    dest: "{{ gatus_config_dir }}/config.yaml"
+    dest: "{{ gatus.path }}/config/config.yaml"
     mode: "0644"
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
@@ -35,7 +33,7 @@
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
-    dest: "{{ gatus_base_dir }}/docker-compose.yml"
+    dest: "{{ gatus.path }}/docker-compose.yml"
     mode: "0640"
     owner: "{{ deploy_user }}"
     group: docker
@@ -43,9 +41,10 @@
 
 - name: Deploy Gatus Stack
   community.docker.docker_compose_v2:
-    project_src: "{{ gatus_base_dir }}"
+    project_src: "{{ gatus.path }}"
     state: present
-    pull: "{{ 'always' if gatus_version == 'latest' else 'missing' }}"
+    # Pull 'missing' if version is pinned, 'always' if latest
+    pull: "{{ 'always' if 'latest' in gatus.image else 'missing' }}"
     remove_orphans: true
   become: true
   become_user: "{{ deploy_user }}"

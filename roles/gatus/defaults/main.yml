@@ -1,40 +1,37 @@
 ---
-# [ Service Identity ]
-gatus_service_name: "gatus"
-gatus_container_name: "{{ gatus_service_name }}"
-gatus_image_name: "twinproduction/gatus"
-gatus_version: "v5.16.0"
+gatus:
+  service: "gatus"
 
-# [ Paths & Directories ]
-gatus_base_dir: "{{ docker_base_dir }}/{{ gatus_service_name }}"
-gatus_config_dir: "{{ gatus_base_dir }}/config"
-gatus_data_dir: "{{ gatus_base_dir }}/data"
+  # Image + Tag
+  image: "twinproduction/gatus:v5.16.0"
 
-# [ Network & Ports ]
-gatus_docker_network: "{{ docker_network_name }}"
-gatus_port: 8080
+  path: "{{ docker.base_dir }}/gatus"
 
-# [ Domain & Ingress ]
-gatus_domain: "status.{{ base_domain }}"
-gatus_ingress_provider: "caddy"
+  # Domain
+  domain: "status.{{ domain.base }}"
+  port: 8080
 
-# [ Configuration ]
-gatus_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
-gatus_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
-gatus_memory_limit: "64M"
+  # UI Settings
+  ui:
+    title: "Status | {{ domain.base }}"
+    header: "System Status"
+    description: "Live service monitoring for {{ domain.base }}"
 
-# [ UI Customization ]
-gatus_title: "Status | {{ base_domain }}"
-gatus_header: "System Status"
-gatus_description: "Live service monitoring for {{ base_domain }}"
+  # Alerting (Telegram)
+  alerting:
+    telegram:
+      token: "{{ vault_telegram.bot_token | default('') }}"
+      chat_id: "{{ vault_telegram.chat_id | default('') }}"
+    failure_threshold: 3
+    success_threshold: 3
+    send_on_resolved: true
 
-# [ Alerting ]
-gatus_telegram_token: "{{ vault_telegram.bot_token | default('') }}"
-gatus_telegram_chat_id: "{{ vault_telegram.chat_id | default('') }}"
+  # Resources
+  memory: "64M"
 
-gatus_alert_failure_threshold: 3   # Попыток перед алертом
-gatus_alert_success_threshold: 3   # Попыток перед "Resolved"
-gatus_alert_send_on_resolved: true # Уведомлять о починке
+  # Integration
+  autoheal: true
 
-# [ Integrations ]
-gatus_enable_autoheal: "{{ use_autoheal | default(true) }}"
+  # Config (Internal)
+  config:
+    interval: "30s" # Default poll interval

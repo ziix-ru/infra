@@ -1,7 +1,7 @@
 ---
 - name: Restart Gatus
   community.docker.docker_compose_v2:
-    project_src: "{{ gatus_base_dir }}"
+    project_src: "{{ gatus.path }}"
     state: restarted
   become: true
   become_user: "{{ deploy_user }}"

@@ -1,11 +1,26 @@
 ui:
-  title: "{{ gatus_title }}"
-  header: "{{ gatus_header }}"
-  description: "{{ gatus_description }}"
-  # Сортировка по умолчанию. Т.к. мы используем цифры в группах, они встанут как надо.
-  default-sort-by: group 
+  title: "{{ gatus.ui.title }}"
+  header: "{{ gatus.ui.header }}"
+  description: "{{ gatus.ui.description }}"
+  default-sort-by: group
 
-# ... (Alerting и Storage без изменений) ...
+# [ Alerting ]
+{% if gatus.alerting.telegram.token and gatus.alerting.telegram.chat_id %}
+alerting:
+  telegram:
+    token: "{{ gatus.alerting.telegram.token }}"
+    id: "{{ gatus.alerting.telegram.chat_id }}"
+    default-alert:
+      description: "Service check failed"
+      failure-threshold: {{ gatus.alerting.failure_threshold }}
+      success-threshold: {{ gatus.alerting.success_threshold }}
+      send-on-resolved: {{ gatus.alerting.send_on_resolved | lower }}
+{% endif %}
+
+storage:
+  type: sqlite
+  path: /data/data.db
+  caching: true
 
 endpoints:
   # ----------------------------------------------------------------------------
@@ -104,7 +119,7 @@ endpoints:
     interval: 5m
     conditions:
       - "[STATUS] == 200"
-  
+
   - name: "Amnezia VPN UI"
     group: "4. 📦 Applications"
     url: "tcp://amnezia:80"
