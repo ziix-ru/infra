@@ -1,14 +1,13 @@
 ---
-# ansible-lint: disable:var-naming[no-role-prefix]
 syncthing:
   service: "syncthing"
-  
+
   # Image + Tag
   image: "lscr.io/linuxserver/syncthing:latest"
 
   # Domain
   domain: "sync.{{ domain.base }}"
-  
+
   # Paths
   path: "{{ docker.base_dir }}/syncthing"
   # Data directory (separate from config)

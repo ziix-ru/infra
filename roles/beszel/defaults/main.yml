@@ -1,52 +1,46 @@
 ---
-# [ Service Identity ]
-beszel_service_name: "beszel"
-beszel_hub_container: "beszel-hub"
-beszel_agent_container: "beszel-agent"
+beszel:
+  service: "beszel"
 
-# [ Images ]
-beszel_hub_image: "henrygd/beszel"
-beszel_hub_tag: "{{ docker_image_tag | default('latest') }}"
-beszel_agent_image: "henrygd/beszel-agent"
-beszel_agent_tag: "{{ docker_image_tag | default('latest') }}"
+  # Paths
+  path: "{{ docker.base_dir }}/beszel"
+  data_dir: "{{ docker.base_dir }}/beszel/hub_data"
 
-# [ Paths ]
-beszel_root: "{{ docker_base_dir }}/{{ beszel_service_name }}"
-beszel_hub_data: "{{ beszel_root }}/hub_data"
-# Agent data folder удалена, агент обычно stateless или маунтит хост
+  # --- DOMAINS ---
+  domain: "mon.{{ domain.base }}"
 
-# [ Network & Ingress ]
-beszel_network: "{{ docker_network_name }}"
-beszel_domain: "mon.{{ base_domain }}"
-beszel_port: 8090
-beszel_ingress_provider: "caddy"
+  # --- HUB CONFIG ---
+  hub:
+    image: "henrygd/beszel:latest"
+    port: 8090
+    memory: "128M"
 
-# [ External Dependencies ]
-beszel_identity_domain: "id.{{ base_domain }}"
-beszel_lldap_admin_dn: "admin"
+  # --- AGENT CONFIG ---
+  agent:
+    image: "henrygd/beszel-agent:latest"
+    memory: "64M"
+    # Agent key from Vault (optional, otherwise auto-generated)
+    key: "{{ vault_beszel.agent_key | default('') }}"
 
-# [ Configuration ]
-beszel_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
-beszel_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
+  # --- SECRETS (Initial Admin) ---
+  admin:
+    email: "{{ vault_beszel.admin_email | default('') }}"
+    password: "{{ vault_beszel.admin_password | default('') }}"
 
-# [ Secrets from Vault ]
-# Значения берутся из Vault, дефолты пустые
-beszel_admin_email: "{{ vault_beszel.admin_email | default('') }}"
-beszel_admin_password: "{{ vault_beszel.admin_password | default('') }}"
-beszel_agent_key: "{{ vault_beszel.agent_key | default('') }}"
-beszel_client_id: "{{ vault_beszel.client_id | default('') }}"
-beszel_client_secret: "{{ vault_beszel.client_secret | default('') }}"
+  # --- OIDC (PocketID) ---
+  oidc:
+    enabled: true # Toggle logic if needed
+    identity_domain: "id.{{ domain.base }}"
+    admin_dn: "admin" # For PocketID token generation
+    client_id: "{{ vault_beszel.client_id | default('') }}"
+    client_secret: "{{ vault_beszel.client_secret | default('') }}"
 
-# [ Resources ]
-beszel_hub_memory: "{{ docker_memory_limit | default('128M') }}"
-beszel_agent_memory: "64M"
+  # --- INTEGRATIONS ---
+  autoheal: true
+  socket_proxy: "{{ enable.socket_proxy | default(false) }}"
 
-# [ Integrations ]
-beszel_use_socket_proxy: "{{ use_socket_proxy | default(false) }}"
-beszel_enable_autoheal: "{{ use_autoheal | default(true) }}"
-beszel_use_sablier: "{{ use_sablier | default(false) }}"
-
-# [ Healthcheck ]
-beszel_hc_interval: "30s"
-beszel_hc_timeout: "5s"
-beszel_hc_retries: 3
+  # --- HEALTHCHECK ---
+  healthcheck:
+    interval: "30s"
+    timeout: "5s"
+    retries: 3

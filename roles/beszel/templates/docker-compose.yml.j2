@@ -1,73 +1,72 @@
 services:
   # 1. Beszel Hub
   hub:
-    image: "{{ beszel_hub_image }}:{{ beszel_hub_tag }}"
-    container_name: "{{ beszel_hub_container }}"
-    restart: "{{ beszel_restart_policy }}"
+    image: "{{ beszel.hub.image }}"
+    container_name: "{{ beszel.service }}-hub"
+    restart: "unless-stopped"
 
     deploy:
       resources:
         limits:
-          memory: {{ beszel_hub_memory }}
+          memory: {{ beszel.hub.memory }}
 
     ports:
-      - "127.0.0.1:8090:8090"
+      - "127.0.0.1:{{ beszel.hub.port }}:8090"
 
     environment:
-      TZ: "{{ beszel_timezone }}"
-      APP_URL: "https://{{ beszel_domain }}"
-      USER_EMAIL: "{{ beszel_admin_email }}"
-      USER_PASSWORD: "{{ beszel_admin_password }}"
+      TZ: "{{ system.timezone | default('UTC') }}"
+      APP_URL: "https://{{ beszel.domain }}"
+      USER_EMAIL: "{{ beszel.admin.email }}"
+      USER_PASSWORD: "{{ beszel.admin.password }}"
       USER_CREATION: "true"
 
     volumes:
-      - "{{ beszel_hub_data }}:/beszel_data"
+      - "{{ beszel.data_dir }}:/beszel_data"
 
     networks:
-      - {{ beszel_network }}
+      - {{ docker.network }}
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
     healthcheck:
       test: ["CMD", "/beszel", "health"]
-      interval: {{ beszel_hc_interval }}
-      timeout: {{ beszel_hc_timeout }}
-      retries: {{ beszel_hc_retries }}
+      interval: {{ beszel.healthcheck.interval }}
+      timeout: {{ beszel.healthcheck.timeout }}
+      retries: {{ beszel.healthcheck.retries }}
 
     labels:
-{% if beszel_ingress_provider == 'caddy' %}
-      caddy: "{{ beszel_domain }}"
+      caddy: "{{ beszel.domain }}"
       caddy.import: "secure-headers"
-      caddy.reverse_proxy: "{{ beszel_hub_container }}:8090"
-{% endif %}
+      caddy.reverse_proxy: "{{ beszel.service }}-hub:8090"
 
-{% if beszel_enable_autoheal | bool %}
+{% if beszel.autoheal | bool %}
       autoheal: "true"
 {% endif %}
 
 
   # 2. Beszel Agent
   agent:
-    image: "{{ beszel_agent_image }}:{{ beszel_agent_tag }}"
-    container_name: "{{ beszel_agent_container }}"
-    restart: "{{ beszel_restart_policy }}"
+    image: "{{ beszel.agent.image }}"
+    container_name: "{{ beszel.service }}-agent"
+    restart: "unless-stopped"
     network_mode: host
 
     healthcheck:
       test: ["CMD", "/agent", "-v"]
-      interval: {{ beszel_hc_interval }}
-      timeout: {{ beszel_hc_timeout }}
-      retries: {{ beszel_hc_retries }}
+      interval: {{ beszel.healthcheck.interval }}
+      timeout: {{ beszel.healthcheck.timeout }}
+      retries: {{ beszel.healthcheck.retries }}
 
     deploy:
       resources:
         limits:
-          memory: {{ beszel_agent_memory }}
+          memory: {{ beszel.agent.memory }}
 
     environment:
-      KEY: "{{ beszel_dynamic_key | default(beszel_agent_key) }}"
-      HUB_URL: "http://127.0.0.1:8090"
+      KEY: "{{ beszel_dynamic_key | default(beszel.agent.key) }}"
+      # Hub URL for Agent (Localhost via host networking)
+      HUB_URL: "http://127.0.0.1:{{ beszel.hub.port }}"
       TOKEN: "{{ beszel_dynamic_token | default('') }}"
       FILESYSTEM: "/extra-filesystems/root"
 
@@ -76,10 +75,10 @@ services:
       - /:/extra-filesystems/root:ro
 
     labels:
-{% if beszel_enable_autoheal | bool %}
+{% if beszel.autoheal | bool %}
       autoheal: "true"
 {% endif %}
 
 networks:
-  {{ beszel_network }}:
+  {{ docker.network }}:
     external: true
