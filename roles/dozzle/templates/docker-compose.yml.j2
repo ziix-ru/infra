@@ -1,96 +1,95 @@
 services:
-  {{ dozzle_service_name }}:
-    image: "{{ dozzle_image_name }}:{{ dozzle_version }}"
-    container_name: "{{ dozzle_container_name }}"
-    restart: "{{ dozzle_restart_policy }}"
+  {{ dozzle.service }}:
+    image: "{{ dozzle.image }}"
+    container_name: "{{ dozzle.service }}"
+    restart: "unless-stopped"
     security_opt:
       - no-new-privileges:true
 
     deploy:
       resources:
         limits:
-          memory: {{ dozzle_memory_limit }}
+          memory: {{ dozzle.memory }}
 
     environment:
-      TZ: "{{ dozzle_timezone }}"
-{% if dozzle_no_analytics %}
+      TZ: "{{ system.timezone | default('UTC') }}"
+{% if dozzle.config.no_analytics %}
       DOZZLE_NO_ANALYTICS: "true"
 {% endif %}
-{% if dozzle_enable_actions %}
+{% if dozzle.config.enable_actions %}
       DOZZLE_ENABLE_ACTIONS: "true"
 {% endif %}
-{% if dozzle_enable_shell %}
+{% if dozzle.config.enable_shell %}
       DOZZLE_ENABLE_SHELL: "true"
 {% endif %}
 
-{% if dozzle_auth_enabled %}
+{% if dozzle.auth.enabled %}
       DOZZLE_AUTH_PROVIDER: "forward-proxy"
-      DOZZLE_AUTH_HEADER_USER: "{{ dozzle_auth_header_user }}"
-      DOZZLE_AUTH_HEADER_EMAIL: "{{ dozzle_auth_header_email }}"
-      DOZZLE_AUTH_HEADER_NAME: "{{ dozzle_auth_header_name }}"
+      DOZZLE_AUTH_HEADER_USER: "{{ dozzle.auth.header_user }}"
+      DOZZLE_AUTH_HEADER_EMAIL: "{{ dozzle.auth.header_email }}"
+      DOZZLE_AUTH_HEADER_NAME: "{{ dozzle.auth.header_name }}"
 {% endif %}
 
-{% if dozzle_use_socket_proxy %}
-      DOZZLE_REMOTE_HOST: "{{ dozzle_docker_host }}"
+{% if dozzle.socket_proxy | bool %}
+      DOZZLE_REMOTE_HOST: "tcp://socket-proxy:2375"
 {% endif %}
 
-{% if not dozzle_use_socket_proxy %}
+{% if not dozzle.socket_proxy | bool %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 {% endif %}
 
     networks:
-      - {{ dozzle_docker_network }} # web (для доступа к UI)
-{% if dozzle_use_socket_proxy %}
-      - socket_proxy                # <--- ВАЖНО: Доступ к сети прокси для чтения логов
+      - {{ docker.network }}
+{% if dozzle.socket_proxy | bool %}
+      - socket_proxy
 {% endif %}
 
-{% if dozzle_hc_enabled %}
     healthcheck:
       test: ["CMD", "/dozzle", "healthcheck"]
-      interval: {{ dozzle_hc_interval }}
-      timeout: {{ dozzle_hc_timeout }}
-      retries: {{ dozzle_hc_retries }}
-      start_period: {{ dozzle_hc_start_period }}
-{% endif %}
+      interval: {{ dozzle.healthcheck.interval }}
+      timeout: {{ dozzle.healthcheck.timeout }}
+      retries: {{ dozzle.healthcheck.retries }}
+      start_period: {{ dozzle.healthcheck.start_period }}
 
     labels:
-{% if dozzle_ingress_provider == 'caddy' %}
-      caddy: "{{ dozzle_domain }}"
+      # === INGRESS: CADDY ===
+      caddy: "{{ dozzle.domain }}"
       caddy.import: "secure-headers"
 
-{% if dozzle_auth_enabled %}
+{% if dozzle.auth.enabled %}
       caddy.route.0_forward_auth: "tinyauth:3000"
       caddy.route.0_forward_auth.uri: "/api/auth/caddy"
-      caddy.route.0_forward_auth.copy_headers: "{{ dozzle_auth_header_user }} {{ dozzle_auth_header_name }} {{ dozzle_auth_header_email }} Remote-Groups"
+      caddy.route.0_forward_auth.copy_headers: "{{ dozzle.auth.header_user }} {{ dozzle.auth.header_name }} {{ dozzle.auth.header_email }} Remote-Groups"
 {% endif %}
 
-{% if dozzle_use_sablier | default(false) %}
+{% if dozzle.sablier.enabled | bool %}
+      # Sablier Middleware
       caddy.route.1_sablier: ""
-      caddy.route.1_sablier.group: "{{ dozzle_sablier_group }}"
+      caddy.route.1_sablier.group: "{{ dozzle.sablier.group }}"
       caddy.route.1_sablier.dynamic: ""
-      caddy.route.1_sablier.dynamic.display_name: "{{ dozzle_sablier_display_name }}"
-      caddy.route.1_sablier.dynamic.theme: "{{ dozzle_sablier_theme }}"
+      caddy.route.1_sablier.dynamic.display_name: "{{ dozzle.sablier.display_name }}"
+      caddy.route.1_sablier.dynamic.theme: "{{ dozzle.sablier.theme }}"
       caddy.route.1_sablier.dynamic.refresh_frequency: "5s"
 {% endif %}
 
-      caddy.route.9_reverse_proxy: "{{ dozzle_service_name }}:{{ dozzle_port }}"
-{% endif %}
+      caddy.route.9_reverse_proxy: "{{ dozzle.service }}:{{ dozzle.port }}"
 
-{% if dozzle_enable_autoheal | bool %}
+{% if dozzle.autoheal | bool %}
       autoheal: "true"
 {% endif %}
 
-{% if dozzle_use_sablier | default(false) %}
+{% if dozzle.sablier.enabled | bool %}
+      # Sablier Agent Labels
       sablier.enable: "true"
-      sablier.group: "{{ dozzle_sablier_group }}"
-      sablier.window: "{{ dozzle_sablier_window }}"
+      sablier.group: "{{ dozzle.sablier.group }}"
+      sablier.window: "{{ dozzle.sablier.window }}"
 {% endif %}
 
 networks:
-  {{ dozzle_docker_network }}:
+  {{ docker.network }}:
     external: true
-{% if dozzle_use_socket_proxy %}
-  socket_proxy:                     # <--- Объявляем сеть
+{% if dozzle.socket_proxy | bool %}
+  socket_proxy:
     external: true
 {% endif %}

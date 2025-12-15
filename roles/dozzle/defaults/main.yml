@@ -1,59 +1,47 @@
 ---
-# [ Service Identity ]
-dozzle_service_name: "dozzle"
-dozzle_container_name: "{{ dozzle_service_name }}"
-dozzle_image_name: "amir20/dozzle"
-dozzle_version: "v8.13.14"  # Актуальная версия
+dozzle:
+  service: "dozzle"
 
-# [ Paths & Directories ]
-dozzle_compose_dir: "{{ docker_base_dir }}/{{ dozzle_service_name }}"
-# Неиспользуемые config/data dir удалены
+  # Image + Tag
+  image: "amir20/dozzle:v8.13.14" # Pinned version is good for stability
 
-# [ Network & Ports ]
-dozzle_docker_network: "{{ docker_network_name }}"
-dozzle_port: 8080
+  path: "{{ docker.base_dir }}/dozzle"
 
-# [ Domain & Ingress ]
-dozzle_domain: "logs.{{ base_domain }}"
-dozzle_ingress_provider: "caddy"
+  # Domain
+  domain: "logs.{{ domain.base }}"
+  port: 8080
 
-# [ Configuration ]
-dozzle_restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
-dozzle_timezone: "{{ docker_timezone | default('Europe/Moscow') }}"
-dozzle_memory_limit: "128M"
+  # Config
+  config:
+    no_analytics: true
+    enable_actions: false
+    enable_shell: false
 
-# [ Dozzle Features ]
-dozzle_enable_actions: false
-dozzle_enable_shell: false
-dozzle_no_analytics: true
+  # Auth (SSO Headers)
+  auth:
+    enabled: true
+    header_user: "Remote-User"
+    header_email: "Remote-Email"
+    header_name: "Remote-Name"
 
-# [ Authentication ]
-dozzle_auth_enabled: true
-dozzle_auth_header_user: "Remote-User"
-dozzle_auth_header_email: "Remote-Email"
-dozzle_auth_header_name: "Remote-Name"
+  # Integrations
+  socket_proxy: "{{ enable.socket_proxy | default(false) }}"
+  autoheal: true
 
-# [ Integrations ]
-# 1. Socket Proxy
-dozzle_use_socket_proxy: "{{ use_socket_proxy | default(false) }}"
-dozzle_docker_host: >-
-  {{ 'tcp://socket-proxy:2375'
-     if dozzle_use_socket_proxy
-     else 'unix:///var/run/docker.sock' }}
+  # Sablier (Scale to Zero)
+  sablier:
+    enabled: "{{ enable.sablier | default(false) }}"
+    window: "5m"
+    group: "dozzle"
+    display_name: "Dozzle Logs"
+    theme: "ghost"
 
-# 2. Autoheal
-dozzle_enable_autoheal: "{{ use_autoheal | default(true) }}"
+  # Resources
+  memory: "128M"
 
-# 3. Sablier (Scale-to-Zero)
-dozzle_use_sablier: "{{ use_sablier | default(false) }}"
-dozzle_sablier_window: "5m"
-dozzle_sablier_group: "dozzle"
-dozzle_sablier_display_name: "Dozzle Logs"
-dozzle_sablier_theme: "ghost"
-
-# [ Healthcheck Strategy ]
-dozzle_hc_enabled: true
-dozzle_hc_interval: "30s"
-dozzle_hc_timeout: "5s"
-dozzle_hc_retries: 3
-dozzle_hc_start_period: "30s" # Увеличено для надежности
+  # Healthcheck
+  healthcheck:
+    interval: "30s"
+    timeout: "5s"
+    retries: 3
+    start_period: "30s"

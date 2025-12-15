@@ -2,16 +2,14 @@
 - name: Validate required variables
   ansible.builtin.assert:
     that:
-      - base_domain is defined
-      - docker_base_dir is defined
-      - dozzle_docker_network is defined
+      - dozzle.domain is defined
       - deploy_user is defined
-    fail_msg: "CRITICAL: Required variables are missing for Dozzle role!"
+    fail_msg: "Required variables missing for Dozzle"
   tags: [dozzle, check]
 
 - name: Ensure Docker network exists
   community.docker.docker_network:
-    name: "{{ dozzle_docker_network }}"
+    name: "{{ docker.network }}"
     state: present
   become: true
   become_user: "{{ deploy_user }}"
@@ -19,7 +17,7 @@
 
 - name: Ensure Dozzle directory exists
   ansible.builtin.file:
-    path: "{{ dozzle_compose_dir }}"
+    path: "{{ dozzle.path }}"
     state: directory
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
@@ -29,19 +27,19 @@
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
-    dest: "{{ dozzle_compose_dir }}/docker-compose.yml"
+    dest: "{{ dozzle.path }}/docker-compose.yml"
     mode: "0640"
     owner: "{{ deploy_user }}"
     group: docker
-  register: dozzle_compose_config
+  notify: Restart Dozzle
   tags: [dozzle, config]
 
 - name: Deploy Dozzle Stack
   community.docker.docker_compose_v2:
-    project_src: "{{ dozzle_compose_dir }}"
+    project_src: "{{ dozzle.path }}"
     state: present
-    # Исправлен синтаксис pull (без policy)
-    pull: "{{ 'always' if dozzle_version == 'latest' else 'missing' }}"
+    # Pull 'missing' if version is pinned, 'always' if latest. Smart.
+    pull: "{{ 'always' if 'latest' in dozzle.image else 'missing' }}"
     remove_orphans: true
   become: true
   become_user: "{{ deploy_user }}"
