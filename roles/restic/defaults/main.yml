@@ -1,50 +1,52 @@
 ---
-# [ Service Identity ]
-restic_service_name: "restic"
-restic_container_name: "{{ restic_service_name }}"
-restic_image: "local/restic-with-rclone"
-restic_base_image: "restic/restic"
-# Обновляем версию (последняя стабильная на момент написания)
-restic_base_version: "0.17.0"
+restic:
+  service: "restic"
 
-# [ Paths & Directories ]
-restic_compose_dir: "{{ docker_base_dir }}/{{ restic_service_name }}"
-restic_config_dir: "{{ restic_compose_dir }}/config"
-restic_build_dir: "{{ restic_compose_dir }}/build"
+  # Image Build Info
+  image: "local/restic-with-rclone:latest"
+  base_image: "restic/restic:0.17.0"
 
-# [ Schedule ]
-restic_timer_schedule: "*-*-* 04:00:00"
-restic_check_schedule: "Sun *-*-* 06:00:00"
+  # Paths
+  path: "{{ docker.base_dir }}/restic"
+  build_dir: "{{ docker.base_dir }}/restic/build"
 
-# [ Check Settings ]
-restic_check_subset: "5%"
+  # Repository
+  repo: "rclone:gdrive:vps_backups"
 
-# [ Secrets ]
-# Внимание: Эти переменные ожидаются из Vault
-restic_password: "{{ vault_backup.restic_password }}"
-restic_rclone_config: "{{ vault_backup.rclone_config }}"
+  # --- BACKUP CONFIGURATION ---
+  backup:
+    mounts:
+      - src: "{{ docker.base_dir }}"
+        dst: "/data"
+    # Service to stop before backup (e.g. 'tuwunel' for DB consistency)
+    stop_service: ""
 
-# [ Repository ]
-restic_repo: "rclone:gdrive:vps_backups"
-restic_healthcheck_url: ""
+    # Retention Policy
+    keep:
+      daily: 7
+      weekly: 4
 
-# [ Rclone Tuning ]
-restic_rclone_chunk_size: "128M"
-restic_rclone_timeout: "10m"
+    # Healthcheck URL (e.g. Healthchecks.io)
+    healthcheck_url: ""
 
-# [ Retention Policy ]
-restic_keep_daily: 7
-restic_keep_weekly: 4
+  # --- SCHEDULE (Systemd Timers) ---
+  schedule:
+    backup: "*-*-* 04:00:00"      # Daily at 4 AM
+    check: "Sun *-*-* 06:00:00"   # Sunday at 6 AM
 
-# [ Service to Stop ]
-# Какой сервис нужно остановить перед бекапом (чтобы БД была консистентна)?
-# Оставляем пустым, если не нужно, или указываем "tuwunel" (Matrix)
-restic_stop_service: ""
+  # --- INTEGRITY CHECK ---
+  check:
+    subset: "5%" # Check 5% of data weekly
 
-# [ Resources ]
-restic_memory_limit: "{{ docker_memory_limit | default('512M') }}"
+  # --- RCLONE TUNING ---
+  rclone:
+    chunk_size: "128M"
+    timeout: "10m"
+    # Config content from Vault
+    config: "{{ vault_backup.rclone_config }}"
 
-# [ Backup Paths ]
-restic_mounts:
-  - src: "{{ docker_base_dir }}"
-    dst: "/data"
+  # --- SECRETS ---
+  password: "{{ vault_backup.restic_password }}"
+
+  # --- RESOURCES ---
+  memory: "512M"

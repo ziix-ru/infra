@@ -1,30 +1,29 @@
 services:
   worker:
-    # Используем собранный нами локальный образ
-    image: "{{ restic_image }}:latest"
-    container_name: "{{ restic_container_name }}"
+    # Use locally built image
+    image: "{{ restic.image }}"
+    container_name: "{{ restic.service }}"
     hostname: "{{ ansible_hostname }}"
-    # Explicitly set user to root inside container for backup permissions
-    # (Restic needs read access to mounted volumes)
+    # Run as root to read all files
     user: root
 
     deploy:
       resources:
         limits:
-          memory: {{ restic_memory_limit }}
+          memory: {{ restic.memory }}
 
     environment:
-      - RESTIC_REPOSITORY={{ restic_repo }}
-      - RESTIC_PASSWORD={{ restic_password }}
+      - RESTIC_REPOSITORY={{ restic.repo }}
+      - RESTIC_PASSWORD={{ restic.password }}
       - RCLONE_CONFIG=/root/.config/rclone/rclone.conf
-      - RCLONE_DRIVE_CHUNK_SIZE=128M
-      - RCLONE_TIMEOUT=10m
+      - RCLONE_DRIVE_CHUNK_SIZE={{ restic.rclone.chunk_size }}
+      - RCLONE_TIMEOUT={{ restic.rclone.timeout }}
 
     volumes:
       - ./entrypoint.sh:/entrypoint.sh:ro
-      - "{{ restic_config_dir }}:/root/.config/rclone:ro" # Read-only config
-{% for mount in restic_mounts %}
-      - {{ mount.src }}:{{ mount.dst }}:ro # Read-only backups!
+      - ./config:/root/.config/rclone:ro
+{% for mount in restic.backup.mounts %}
+      - {{ mount.src }}:{{ mount.dst }}:ro
 {% endfor %}
 
     entrypoint: ["/bin/sh", "/entrypoint.sh"]

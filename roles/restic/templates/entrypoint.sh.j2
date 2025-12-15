@@ -2,8 +2,8 @@
 set -e
 
 ping_hc() {
-    if [ -n "{{ restic_healthcheck_url }}" ]; then
-        wget -q -O /dev/null "{{ restic_healthcheck_url }}$1"
+    if [ -n "{{ restic.backup.healthcheck_url }}" ]; then
+        wget -q -O /dev/null "{{ restic.backup.healthcheck_url }}$1"
     fi
 }
 trap 'ping_hc "/fail"' ERR
@@ -20,14 +20,14 @@ if ! restic snapshots > /dev/null 2>&1; then
 fi
 
 echo "📦 [Restic] Backing up..."
-TARGETS="{% for mount in restic_mounts %}{{ mount.dst }} {% endfor %}"
+TARGETS="{% for mount in restic.backup.mounts %}{{ mount.dst }} {% endfor %}"
 
 restic backup $TARGETS --tag daily_backup
 
 echo "🧹 [Restic] Pruning..."
 restic forget \
-    --keep-daily {{ restic_keep_daily }} \
-    --keep-weekly {{ restic_keep_weekly }} \
+    --keep-daily {{ restic.backup.keep.daily }} \
+    --keep-weekly {{ restic.backup.keep.weekly }} \
     --prune
 
 echo "✅ [Restic] Success!"

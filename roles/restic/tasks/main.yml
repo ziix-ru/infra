@@ -2,13 +2,12 @@
 - name: Validate required variables
   ansible.builtin.assert:
     that:
-      - restic_password is defined
-      - restic_rclone_config is defined
+      - restic.password is defined
+      - restic.rclone.config is defined
       - deploy_user is defined
     fail_msg: "CRITICAL: Restic secrets are missing!"
   tags: [restic, check]
 
-# 1. Создание папок
 - name: Ensure Restic directories exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -17,37 +16,47 @@
     group: "{{ deploy_user }}"
     mode: "0755"
   loop:
-    - "{{ restic_compose_dir }}"
-    - "{{ restic_config_dir }}"
-    - "{{ restic_build_dir }}"
+    - "{{ restic.path }}"
+    - "{{ restic.path }}/config"
+    - "{{ restic.build_dir }}"
   tags: [restic, filesystem]
 
-# 2. Создание файлов
+# --- BUILD IMAGE ---
 - name: Create Dockerfile
   ansible.builtin.copy:
-    dest: "{{ restic_build_dir }}/Dockerfile"
+    dest: "{{ restic.build_dir }}/Dockerfile"
     content: |
-      FROM {{ restic_base_image }}:{{ restic_base_version }}
+      FROM {{ restic.base_image }}
       RUN apk add --no-cache rclone ca-certificates
     mode: "0644"
   register: restic_dockerfile
   tags: [restic, build]
 
+- name: Build Restic Image
+  community.docker.docker_image:
+    name: "{{ restic.image }}"
+    source: build
+    build:
+      path: "{{ restic.build_dir }}"
+      pull: true
+    force_source: "{{ restic_dockerfile.changed }}"
+  tags: [restic, build]
+
+# --- CONFIGURATION ---
 - name: Create Rclone Config
   ansible.builtin.copy:
-    dest: "{{ restic_config_dir }}/rclone.conf"
-    content: "{{ restic_rclone_config }}"
+    dest: "{{ restic.path }}/config/rclone.conf"
+    content: "{{ restic.rclone.config }}"
     mode: "0600"
-    owner: "{{ deploy_user }}" # Изменили на deploy_user, чтобы Docker мог читать (через маунт)
+    owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
   no_log: true
   tags: [restic, config]
 
-# 3. Рендеринг шаблонов
 - name: Render Entrypoint Script
   ansible.builtin.template:
     src: entrypoint.sh.j2
-    dest: "{{ restic_compose_dir }}/entrypoint.sh"
+    dest: "{{ restic.path }}/entrypoint.sh"
     mode: "0755"
     owner: "{{ deploy_user }}"
   tags: [restic, config]
@@ -55,34 +64,23 @@
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
-    dest: "{{ restic_compose_dir }}/docker-compose.yml"
+    dest: "{{ restic.path }}/docker-compose.yml"
     mode: "0640"
     owner: "{{ deploy_user }}"
     group: docker
   tags: [restic, config]
 
-# 4. Сборка образа
-- name: Build Restic Image
-  community.docker.docker_image:
-    name: "{{ restic_image }}"
-    source: build
-    build:
-      path: "{{ restic_build_dir }}"
-      pull: true
-    force_source: "{{ restic_dockerfile.changed }}"
-  tags: [restic, build]
-
-# 5. Инициализация контейнера (Create only)
+# --- DEPLOY CONTAINER ---
 - name: Create Restic container (initialized but stopped)
   ansible.builtin.command:
     cmd: docker compose up --no-start --remove-orphans
-    chdir: "{{ restic_compose_dir }}"
+    chdir: "{{ restic.path }}"
   register: restic_create_container
   changed_when:
     - "'Created' in restic_create_container.stderr or 'Recreated' in restic_create_container.stderr"
   tags: [restic, deploy]
 
-# 6. Systemd Units
+# --- SYSTEMD UNITS ---
 - name: Deploy Systemd Units
   ansible.builtin.template:
     src: "{{ item }}"

@@ -5,15 +5,15 @@ After=docker.service
 
 [Service]
 Type=oneshot
-WorkingDirectory={{ restic_compose_dir }}
+WorkingDirectory={{ restic.path }}
 TimeoutStartSec=10800
 MemoryMax=1G
-{% if restic_stop_service %}
-ExecStartPre=-/usr/bin/docker stop {{ restic_stop_service }}
+{% if restic.backup.stop_service %}
+ExecStartPre=-/usr/bin/docker stop {{ restic.backup.stop_service }}
 {% endif %}
-ExecStart=/usr/bin/docker start -a {{ restic_service_name }}
-{% if restic_stop_service %}
-ExecStopPost=/usr/bin/docker start {{ restic_stop_service }}
+ExecStart=/usr/bin/docker start -a {{ restic.service }}
+{% if restic.backup.stop_service %}
+ExecStopPost=/usr/bin/docker start {{ restic.backup.stop_service }}
 {% endif %}
 
 [Install]

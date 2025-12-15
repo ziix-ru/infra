@@ -5,8 +5,8 @@ After=docker.service
 
 [Service]
 Type=oneshot
-WorkingDirectory={{ restic_compose_dir }}
-ExecStart=/usr/bin/docker compose run --rm --entrypoint "restic check --read-data-subset={{ restic_check_subset | replace('%', '%%') }}" worker
+WorkingDirectory={{ restic.path }}
+ExecStart=/usr/bin/docker compose run --rm --entrypoint "restic check --read-data-subset={{ restic.check.subset | replace('%', '%%') }}" worker
 
 [Install]
 WantedBy=multi-user.target
