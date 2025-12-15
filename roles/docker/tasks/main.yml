@@ -1,13 +1,15 @@
 ---
-- name: Install packages required for Docker apt repo
+- name: Install dependencies
   ansible.builtin.apt:
     name:
       - ca-certificates
       - curl
       - gnupg
+      - python3-docker # Required for community.docker modules
     state: present
     update_cache: true
 
+# --- REPO SETUP ---
 - name: Create directory for apt keyrings
   ansible.builtin.file:
     path: /etc/apt/keyrings
@@ -16,18 +18,20 @@
 
 - name: Download Docker GPG key
   ansible.builtin.get_url:
-    url: https://download.docker.com/linux/debian/gpg
+    url: "https://download.docker.com/linux/debian/gpg"
     dest: /etc/apt/keyrings/docker.asc
     mode: "0644"
-    force: true
+    force: false # Force не нужен, если ключ не менялся
+  tags: [docker, system]
 
 - name: Add Docker apt repository
   ansible.builtin.apt_repository:
     repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
     state: present
     filename: docker
+  tags: [docker, system]
 
-- name: Install Docker Engine and plugins
+- name: Install Docker Engine
   ansible.builtin.apt:
     name:
       - docker-ce
@@ -35,34 +39,43 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
-      - python3-docker
     state: present
     update_cache: true
+  tags: [docker, system]
 
-- name: Ensure Docker service is running and enabled
+- name: Ensure Docker service is running
   ansible.builtin.service:
     name: docker
     state: started
     enabled: true
+  tags: [docker, system]
 
-- name: Configure Docker Daemon settings
+# --- CONFIGURATION ---
+- name: Configure Docker Daemon
   ansible.builtin.import_tasks: daemon.yml
+  tags: [docker, config]
 
-- name: Add deploy user to docker group
+- name: Add users to docker group
   ansible.builtin.user:
-    name: "{{ deploy_user }}"
+    name: "{{ item }}"
     groups: docker
     append: true
+  loop: "{{ docker.users }}"
+  tags: [docker, system]
 
 - name: Ensure shared Docker network exists
   community.docker.docker_network:
-    name: "{{ docker_network_name }}"
+    name: "{{ docker.network }}"
     state: present
+  tags: [docker, network]
 
 - name: Log into Docker Hub
   community.docker.docker_login:
-    username: "{{ docker_registry_username }}"
-    password: "{{ docker_registry_password }}"
+    username: "{{ docker.registry.username }}"
+    password: "{{ docker.registry.password }}"
     state: present
   become: true
-  when: docker_registry_username is defined and docker_registry_password is defined
+  when:
+    - docker.registry.username | length > 0
+    - docker.registry.password | length > 0
+  tags: [docker, config]

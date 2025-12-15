@@ -1,2 +1,26 @@
-docker_registry_username: skardiz
-docker_registry_password: "{{ vault_services.docker_hub.password }}"
+---
+# ansible-lint: disable:var-naming[no-role-prefix]
+docker:
+  # Users to add to 'docker' group
+  users:
+    - "{{ deploy_user }}"
+
+  # Network to create (shared for all containers)
+  network: "{{ docker_network_name | default('web') }}"
+
+  # Docker Hub Auth
+  registry:
+    username: "skardiz"
+    password: "{{ vault_services.docker_hub.password | default('') }}"
+
+  # Daemon Configuration (/etc/docker/daemon.json)
+  daemon:
+    log-driver: "json-file"
+    log-opts:
+      max-size: "10m"
+      max-file: "3"
+    live-restore: true
+    userland-proxy: false
+    init: true
+    no-new-privileges: true
+    metrics-addr: "127.0.0.1:9323"

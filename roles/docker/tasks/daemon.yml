@@ -5,21 +5,10 @@
     state: directory
     mode: '0755'
 
-- name: Configure Docker Daemon (JSON File Logging, Live Restore, No Userland Proxy)
+- name: Configure Docker Daemon (daemon.json)
   ansible.builtin.copy:
     dest: /etc/docker/daemon.json
-    content: |
-      {
-        "log-driver": "json-file",
-        "log-opts": {
-          "max-size": "10m",
-          "max-file": "3"
-        },
-        "live-restore": true,
-        "userland-proxy": false,
-        "init": true,
-        "no-new-privileges": true,
-        "metrics-addr": "127.0.0.1:9323"
-      }
+    # Превращаем словарь Ansible в красивый JSON
+    content: "{{ docker.daemon | to_nice_json }}"
     mode: '0644'
   notify: Restart Docker
